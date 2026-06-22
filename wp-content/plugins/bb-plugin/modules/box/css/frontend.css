@@ -1,0 +1,23 @@
+.fl-module-box:before,
+.fl-module-box:after {
+	position: absolute;
+}
+a.fl-module-box {
+	text-decoration: none;
+}
+
+/* Zero margins for child modules */
+.fl-module-box :where( .fl-module ),
+.fl-module-box :where( .fl-module-content ),
+.fl-module-box.fl-block > * {
+	margin: 0;
+}
+
+/* Prevent sliders and carousels from blowing out flex layouts */
+:where(.fl-module-box:has(
+    [class*="slide"],
+    [class*="carousel"],
+    [class*="swiper"]
+)) {
+    min-width: 0;
+}

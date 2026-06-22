@@ -1,0 +1,350 @@
+<?php
+/**
+ * Parser.
+ *
+ * @package WP_Video_Popup
+ */
+
+defined( 'ABSPATH' ) || die( "Can't access directly" );
+
+/**
+ * Helper class to handle video popup parser.
+ */
+class WP_Video_Popup_Parser {
+
+	/**
+	 * Determines which cloud video provider is being used based on the passed url.
+	 *
+	 * @param string $url The url.
+	 *
+	 * @return string The service's name.
+	 */
+	public static function identify_service( $url ) {
+
+		if ( preg_match( '%youtube-nocookie\.%i', $url ) ) {
+			return 'youtube-nocookie';
+		} elseif ( preg_match( '%vimeo\.%i', $url ) ) {
+			return 'vimeo';
+		} elseif ( preg_match( '%rumble\.%i', $url ) ) {
+			return 'rumble';
+		}
+
+		return 'youtube';
+
+	}
+
+	/**
+	 * Determines which cloud video provider is being used based on the passed url,
+	 * and extracts the video id from the url.
+	 *
+	 * @param string $url The url.
+	 *
+	 * @return string The video's id.
+	 */
+	public static function get_url_id( $url ) {
+
+		$service = self::identify_service( $url );
+
+		if ( 'youtube' === $service || 'youtube-nocookie' === $service ) {
+			return self::get_youtube_id( $url );
+		} elseif ( 'vimeo' === $service ) {
+			return self::get_vimeo_id( $url );
+		} elseif ( 'rumble' === $service ) {
+			return self::get_rumble_id( $url );
+		}
+
+		return '';
+
+	}
+
+	/**
+	 * Determines which cloud video provider is being used based on the passed url,
+	 * extracts the video id from the url, and builds an embed url.
+	 *
+	 * @param string $url The url.
+	 *
+	 * @return string The video's embed url on success.
+	 */
+	public static function get_embed_url( $url ) {
+
+		$service = self::identify_service( $url );
+		$id      = self::get_url_id( $url );
+
+		if ( 'youtube' === $service ) {
+			return self::get_youtube_embed_url( $id );
+		} elseif ( 'youtube-nocookie' === $service ) {
+			return self::get_youtube_embed_url( $id, 1, true );
+		} elseif ( 'vimeo' === $service ) {
+			$hash = self::get_vimeo_hash( $url );
+			return self::get_vimeo_embed_url( $id, 1, $hash );
+		} elseif ( 'rumble' === $service ) {
+			return self::get_rumble_embed_url( $id );
+		}
+
+		return $url;
+
+	}
+
+	/**
+	 * Parses various youtube urls and returns video identifier.
+	 *
+	 * @param string $url The url.
+	 *
+	 * @return string The url's id.
+	 */
+	public static function get_youtube_id( $url ) {
+
+		$youtube_url_keys = array( 'v', 'vi' );
+
+		// Try to get ID from url parameters.
+		$key_from_params = self::parse_url_for_params( $url, $youtube_url_keys );
+
+		if ( $key_from_params ) {
+			return $key_from_params;
+		}
+
+		// Try to get ID from last portion of url.
+		return self::parse_url_for_last_element( $url );
+
+	}
+
+	/**
+	 * Builds a Youtube embed url from a video id.
+	 *
+	 * @param string $youtube_video_id The video's id.
+	 * @param int    $autoplay The autoplay argument value.
+	 * @param bool   $nocookie Whether to use regular YouTube or youtube-nookie.
+	 *
+	 * @return string The embed url.
+	 */
+	public static function get_youtube_embed_url( $youtube_video_id, $autoplay = 1, $nocookie = false ) {
+
+		$video_url  = ! $nocookie ? 'https://www.youtube.com' : 'https://www.youtube-nocookie.com';
+		$video_url .= "/embed/$youtube_video_id?autoplay=$autoplay";
+
+		return $video_url;
+
+	}
+
+	/**
+	 * Parses various vimeo urls and returns video identifier.
+	 *
+	 * @param string $url The url.
+	 *
+	 * @return string The url's id.
+	 */
+	public static function get_vimeo_id( $url ) {
+
+		$path = wp_parse_url( $url, PHP_URL_PATH );
+		if ( ! $path ) {
+			return '';
+		}
+
+		$path  = trim( $path, '/' );
+		$parts = explode( '/', $path );
+
+		// The first part that is purely numeric is likely the ID.
+		foreach ( $parts as $part ) {
+			if ( 'video' === $part ) {
+				continue;
+			}
+			if ( ctype_digit( $part ) ) {
+				return $part;
+			}
+		}
+
+		return '';
+
+	}
+
+	/**
+	 * Extracts the security hash from a Vimeo url.
+	 *
+	 * @param string $url The url.
+	 *
+	 * @return string The security hash.
+	 */
+	public static function get_vimeo_hash( $url ) {
+
+		// 1. Check path for pattern /ID/HASH.
+		$path = wp_parse_url( $url, PHP_URL_PATH );
+		if ( $path ) {
+			$path  = trim( $path, '/' );
+			$parts = explode( '/', $path );
+
+			// If we have at least 2 parts and the first one we find as numeric is followed by another part.
+			foreach ( $parts as $index => $part ) {
+				if ( 'video' === $part ) {
+					continue;
+				}
+				if ( ctype_digit( $part ) ) {
+					if ( ! empty( $parts[ $index + 1 ] ) ) {
+						return $parts[ $index + 1 ];
+					}
+					break;
+				}
+			}
+		}
+
+		// 2. Check query parameter 'h'.
+		$query = wp_parse_url( $url, PHP_URL_QUERY );
+		if ( $query ) {
+			parse_str( $query, $params );
+			if ( ! empty( $params['h'] ) ) {
+				return $params['h'];
+			}
+		}
+
+		return '';
+
+	}
+
+	/**
+	 * Builds a Vimeo embed url from a video id.
+	 *
+	 * @param string $vimeo_video_id The video's id.
+	 * @param int    $autoplay The autoplay argument value.
+	 * @param string $hash The security hash for private videos.
+	 *
+	 * @return string The embed url.
+	 */
+	public static function get_vimeo_embed_url( $vimeo_video_id, $autoplay = 1, $hash = '' ) {
+
+		$video_url = "https://player.vimeo.com/video/$vimeo_video_id";
+
+		if ( $hash ) {
+			$video_url .= "?h=$hash&byline=0&portrait=0&autoplay=$autoplay";
+		} else {
+			$video_url .= "?byline=0&portrait=0&autoplay=$autoplay";
+		}
+
+		return $video_url;
+
+	}
+
+	/**
+	 * Parses Rumble urls and returns video identifier.
+	 *
+	 * @param string $url The url.
+	 *
+	 * @return string The url's id.
+	 */
+	public static function get_rumble_id( $url ) {
+
+		// Check if the URL contains 'embed'.
+		if ( stripos( $url, 'embed' ) !== false ) {
+			// If URL contains 'embed', use this logic.
+			if ( stripos( $url, '/?' ) !== false ) {
+				$splits = explode( '/?', $url );
+				$url    = $splits[0];
+			}
+
+			// Remove trailing slash.
+			$url = untrailingslashit( $url );
+
+			// Extract the last part of the URL.
+			return self::parse_url_for_last_element( $url );
+		}
+
+		// If URL does not contain 'embed', use alternate logic.
+		$iframely_api_url = 'https://iframely.com/api/try?url=' . rawurlencode( $url );
+
+		// Fetch the data from Iframely API using wp_remote_get().
+		$remote_response = wp_remote_get( $iframely_api_url );
+
+		// Check if the request was successful.
+		if ( is_wp_error( $remote_response ) ) {
+			return '';
+		}
+
+		// Decode the JSON response using json_decode().
+		$data = json_decode( $remote_response['body'], true );
+
+		if ( ! $data || empty( $data['code'] ) ) {
+			return '';
+		}
+
+		$markup = $data['code'];
+
+		// Regular expression to extract the ID between "embed/" and the next "/".
+		$pattern  = '/embed\/(.*?)\//';
+		$video_id = false;
+
+		// Apply the regex.
+		if ( preg_match( $pattern, $markup, $matches ) ) {
+			// Extracted ID.
+			$video_id = $matches[1];
+		}
+
+		return $video_id;
+
+	}
+
+	/**
+	 * Builds a Rumble embed url from a video id.
+	 *
+	 * @param string $rumble_video_id The video's id.
+	 * @param int    $autoplay The autoplay argument value.
+	 *
+	 * @return string The embed url.
+	 */
+	public static function get_rumble_embed_url( $rumble_video_id, $autoplay = 2 ) {
+
+		return "https://rumble.com/embed/$rumble_video_id/?autoplay=$autoplay";
+
+	}
+
+	/**
+	 * Find the first matching parameter value in a url from the passed params array.
+	 *
+	 * @access private
+	 *
+	 * @param string $url The url.
+	 * @param array  $target_params Any parameter keys that may contain the id.
+	 *
+	 * @return null|string Null on failure to match a target param, the url's id on success.
+	 */
+	private static function parse_url_for_params( $url, $target_params ) {
+
+		$query = wp_parse_url( $url, PHP_URL_QUERY );
+		if ( ! $query ) {
+			return null;
+		}
+
+		parse_str( $query, $my_array_of_params );
+
+		foreach ( $target_params as $target ) {
+			if ( array_key_exists( $target, $my_array_of_params ) ) {
+				return $my_array_of_params[ $target ];
+			}
+		}
+
+		return null;
+
+	}
+
+	/**
+	 * Find the last element in a url, without any trailing parameters.
+	 *
+	 * @access private
+	 *
+	 * @param string $url The url.
+	 *
+	 * @return string The last element of the url.
+	 */
+	private static function parse_url_for_last_element( $url ) {
+
+		$url_parts           = explode( '/', $url );
+		$prospect            = end( $url_parts );
+		$prospect_and_params = preg_split( '/(\?|\=|\&)/', $prospect );
+
+		if ( $prospect_and_params ) {
+			return $prospect_and_params[0];
+		} else {
+			return $prospect;
+		}
+
+		return $url;
+
+	}
+}

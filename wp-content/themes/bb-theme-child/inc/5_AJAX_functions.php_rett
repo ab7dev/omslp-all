@@ -1,0 +1,174 @@
+<?php 
+//////////////////////////////
+//////////////////////////////
+// module 38
+//////////////////////////////
+//////////////////////////////
+
+//////////////////////////////
+// update finished lesson
+//////////////////////////////
+add_action( 'wp_ajax_nopriv_mark_as_finished', 'mark_as_finished' );
+add_action( 'wp_ajax_mark_as_finished', 'mark_as_finished' );
+
+function mark_as_finished() {
+
+	if ( defined( 'DOING_AJAX' ) && DOING_AJAX ) { 
+		$post_id = $_REQUEST['post_id'];
+		$part_id = $_REQUEST['part_id'];
+		
+	
+		$i = 0;
+	 	while( have_rows('lesson', $post_id ) ): the_row(); 
+	 		$i++;
+	 	
+	 		if( $part_id == $i){
+	 		
+	 			update_sub_field( 'finished_lesson', 1 ); 
+	 		}
+	 	
+	 	endwhile;
+ 	
+		die();
+	}
+	else {
+		
+		exit();
+	}
+} 
+
+//////////////////////////////
+// load_video
+//////////////////////////////
+add_action( 'wp_ajax_nopriv_load_video', 'load_video' );
+add_action( 'wp_ajax_load_video', 'load_video' );
+
+function load_video() { 
+
+	if ( defined( 'DOING_AJAX' ) && DOING_AJAX ) { 
+	
+		$post_id = $_GET['post_id'];
+		$video_id = $_GET['video_id'];
+		$preload  = FLBuilderModel::is_builder_active() ? ' preload="none"' : '';
+		
+		$user_id = get_current_user_id();
+		
+		$has_subscription = false;
+		
+		$active_subscriptions = get_posts( array(
+        'numberposts' => -1,
+        'meta_key'    => '_customer_user',
+        'meta_value'  => $user_id,
+        'post_type'   => 'shop_subscription',
+        'post_status' =>  array('wc-active','wc-pending-cancel'), // Active subscription
+
+		) );
+
+		if(!empty($active_subscriptions)) $has_subscription = true;
+
+		if ( is_user_logged_in() && current_user_can('administrator') ) $has_subscription = true;
+		// if ( is_user_logged_in() ) $has_subscription = true;
+		
+		$free_video_url = get_field('default_promo_video','option');
+    
+		$i = 0;
+	 	while( have_rows('lesson', $post_id ) ): the_row(); 
+	 		$i++;
+	 	
+	 		if( $video_id == $i){
+	 			if ($has_subscription == true || get_sub_field('free_lesson', $post_id) == true ){
+	 				$video_url = get_sub_field('video_url',$post_id );
+	 			} else {
+					$video_url = $free_video_url;
+				}
+	 		}
+	 	
+	 	endwhile;
+	
+		//$params1 = array( 'width' => 753 , 'height' => 432 ,'quality' => 100 );
+		echo  do_shortcode('[video width="100%" height="100%" mp4="' . $video_url . '" poster="' .  get_the_post_thumbnail_url( $post_id, 'video-poster' ) . '"' . $preload . '][/video]');
+
+		die;
+	} else {
+		
+		exit();
+		
+	}
+
+} 
+
+//////////////////////////////
+// like
+//////////////////////////////
+add_action( 'wp_ajax_nopriv_like_click', 'like_click' );
+add_action( 'wp_ajax_like_click', 'like_click' );
+
+function like_click() {
+	
+	if ( defined( 'DOING_AJAX' ) && DOING_AJAX ) { 
+	
+		$post_id = $_REQUEST['post_id'];
+		$like_stat = get_field('like', $post_id);
+		$like_stat++;
+		update_field('like', $like_stat , $post_id );
+		
+		die;
+	}
+	else {
+		
+		exit();
+	}
+
+} 
+
+//////////////////////////////
+// dislike
+//////////////////////////////
+add_action( 'wp_ajax_nopriv_dislike_click', 'dislike_click' );
+add_action( 'wp_ajax_dislike_click', 'dislike_click' );
+
+function dislike_click() {
+	
+	if ( defined( 'DOING_AJAX' ) && DOING_AJAX ) { 
+	
+		$post_id = $_REQUEST['post_id'];
+		$like_stat = get_field('dislike', $post_id);
+		$like_stat++;
+		update_field('dislike', $like_stat , $post_id );
+		
+		die;
+	}
+	else {
+		
+		exit();
+	}
+
+} 
+
+//////////////////////////////
+//////////////////////////////
+// module 38 END
+//////////////////////////////
+//////////////////////////////
+
+
+//////////////////////////////
+// like
+//////////////////////////////
+// add_action( 'wp_ajax_nopriv_name_function_call', 'name_function_call' );
+// add_action( 'wp_ajax_name_function_call', 'name_function_call' );
+
+function name_function_call() {
+	
+	if ( defined( 'DOING_AJAX' ) && DOING_AJAX ) { 
+	
+		//do what you need
+		
+		die;
+	}
+	else {
+		
+		exit();
+	}
+
+} 

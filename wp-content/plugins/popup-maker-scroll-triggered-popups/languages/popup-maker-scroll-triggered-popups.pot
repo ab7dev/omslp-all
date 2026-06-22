@@ -1,0 +1,117 @@
+# Copyright (C) 2018 popup-maker-scroll-triggered-popups
+# This file is distributed under the same license as the popup-maker-scroll-triggered-popups package.
+msgid ""
+msgstr ""
+"Project-Id-Version: popup-maker-scroll-triggered-popups\n"
+"Report-Msgid-Bugs-To: https://wppopupmaker.com/support\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"PO-Revision-Date: 2018-MO-DA HO:MI+ZONE\n"
+"Language-Team: WP Popup Maker <support@wppopupmaker.com>\n"
+"X-Poedit-Basepath: ..\n"
+"X-Poedit-SourceCharset: UTF-8\n"
+"X-Poedit-KeywordsList: __;_e;_n:1,2;_x:1,2c;_ex:1,2c;_nx:4c,1,2;esc_attr__;esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c;_n_noop:1,2;_nx_noop:3c,1,2;__ngettext_noop:1,2\n"
+"X-Poedit-SearchPath-0: .\n"
+"X-Poedit-SearchPathExcluded-0: *.js\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: classes/Shortcode/ScrollTrigger.php:45
+msgid "Scroll Trigger Point"
+msgstr ""
+
+#: classes/Shortcode/ScrollTrigger.php:52
+msgid "Inserts a hidden element to trigger a scroll popup."
+msgstr ""
+
+#: classes/Shortcode/ScrollTrigger.php:70
+msgid "Popup"
+msgstr ""
+
+#: classes/Shortcode/ScrollTrigger.php:71
+msgid "Which popup is this trigger point for?."
+msgstr ""
+
+#: classes/Shortcode/ScrollTrigger.php:149
+msgid "Scroll Trigger for Popup #%s"
+msgstr ""
+
+#: classes/Triggers.php:33
+msgid "Scroll"
+msgstr ""
+
+#: classes/Triggers.php:34
+msgid "Scroll Trigger Settings"
+msgstr ""
+
+#: classes/Triggers.php:35
+msgid "Trigger"
+msgstr ""
+
+#: classes/Triggers.php:39
+msgid "What type of scroll trigger do you want to use?"
+msgstr ""
+
+#: classes/Triggers.php:43, classes/Triggers.php:49
+msgid "Distance"
+msgstr ""
+
+#: classes/Triggers.php:44
+msgid "Element"
+msgstr ""
+
+#: classes/Triggers.php:50
+msgid "Choose how far users scroll before popup opens."
+msgstr ""
+
+#: classes/Triggers.php:62
+msgid "When should the popup trigger?"
+msgstr ""
+
+#: classes/Triggers.php:65
+msgid "When the element first comes on screen."
+msgstr ""
+
+#: classes/Triggers.php:66
+msgid "When the element has been completely revealed."
+msgstr ""
+
+#: classes/Triggers.php:67
+msgid "When the element begins to scroll off screen."
+msgstr ""
+
+#: classes/Triggers.php:68
+msgid "When the element has completely scrolled off screen."
+msgstr ""
+
+#: classes/Triggers.php:76
+msgid "What type of element do you want to use as a trigger point?"
+msgstr ""
+
+#: classes/Triggers.php:79
+msgid "Shortcode"
+msgstr ""
+
+#: classes/Triggers.php:80
+msgid "CSS Selector"
+msgstr ""
+
+#: classes/Triggers.php:87
+msgid "Trigger Element Selector"
+msgstr ""
+
+#: classes/Triggers.php:88
+msgid "CSS / jQuery Selector that will be used as a trigger point."
+msgstr ""
+
+#: classes/Triggers.php:95
+msgid "Use this shortcode:"
+msgstr ""
+
+#: classes/Triggers.php:104
+msgid "Close When Scrolling Back Up"
+msgstr ""
+
+#: classes/Triggers.php:105
+msgid "Checking this will cause popup to close when scrolling up past the trigger point."
+msgstr ""

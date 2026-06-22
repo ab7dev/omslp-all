@@ -1,0 +1,95 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "mailster/messages",
+  "title": "Message Field",
+  "category": "mailster-form-fields",
+  "keywords": [
+    "container",
+    "wrapper",
+    "row",
+    "section"
+  ],
+  "parent": [
+    "mailster/form-wrapper",
+    "core/column",
+    "core/group"
+  ],
+  "description": "The message block contains the success and error messages for the form. It's a required block and can't be removed.",
+  "supports": {
+    "html": false,
+    "reusable": false,
+    "multiple": false,
+    "inserter": false,
+    "visibility": false,
+    "spacing": {
+      "padding": true,
+      "margin": true
+    },
+    "shadow": true,
+    "typography": {
+      "fontSize": true,
+      "lineHeight": true,
+      "__experimentalFontStyle": true,
+      "__experimentalFontWeight": true,
+      "__experimentalLetterSpacing": true,
+      "__experimentalTextTransform": true
+    },
+    "__experimentalBorder": {
+      "color": true,
+      "radius": true,
+      "style": true,
+      "width": true,
+      "__experimentalDefaultControls": {
+        "color": true,
+        "radius": true,
+        "style": true,
+        "width": true
+      }
+    }
+  },
+  "attributes": {
+    "lock": {
+      "type": "object",
+      "default": {
+        "remove": true
+      }
+    },
+    "successMessage": {
+      "type": "string",
+      "source": "html",
+      "selector": ".mailster-block-form-info-success > div"
+    },
+    "errorMessage": {
+      "type": "string",
+      "source": "html",
+      "selector": ".mailster-block-form-info-error > div"
+    },
+    "success": {
+      "type": "string",
+      "default": "#ffffff"
+    },
+    "successBackground": {
+      "type": "string",
+      "default": "#6fbf4d"
+    },
+    "error": {
+      "type": "string",
+      "default": "#ffffff"
+    },
+    "errorBackground": {
+      "type": "string",
+      "default": "#bf4d4d"
+    },
+    "align": {
+      "type": "string"
+    },
+    "width": {
+      "type": "integer"
+    }
+  },
+  "textdomain": "mailster",
+  "editorScript": "file:./index.js",
+  "editorStyle": "file:./index.css",
+  "style": "file:./style-index.css"
+}

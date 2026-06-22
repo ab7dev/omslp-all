@@ -1,0 +1,20 @@
+.fl-mosaicflow-content {
+	visibility: hidden;
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+.fl-mosaicflow-col {
+	float:left;
+}
+.fl-gallery {
+	position: relative;
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+.fl-gallery-item {
+	display: none;
+	min-height: 150px;
+	width: 150px;
+}

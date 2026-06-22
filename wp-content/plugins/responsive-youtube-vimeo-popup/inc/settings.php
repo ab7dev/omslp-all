@@ -1,0 +1,102 @@
+<?php
+/**
+ * Settings.
+ *
+ * @package WP_Video_Popup_PRO
+ */
+
+defined( 'ABSPATH' ) || die( "Can't access directly" );
+
+/**
+ * Sanitize popup settings.
+ *
+ * Free version doesn't have active settings fields.
+ * Just return input to satisfy Plugin Check requirements.
+ * This preserves any existing pro version settings if user downgrades.
+ *
+ * @param array $input The input values to sanitize.
+ * @return array The sanitized values.
+ */
+function wp_video_popup_sanitize_settings( $input ) {
+
+	return $input;
+
+}
+
+/**
+ * Popup settings.
+ */
+function wp_video_popup_settings() {
+
+	// Register settings with sanitization callback.
+	register_setting(
+		'wp-video-popup-settings-group',
+		'wpvp_popup',
+		array(
+			'sanitize_callback' => 'wp_video_popup_sanitize_settings',
+		)
+	);
+
+	// Settings sections.
+	add_settings_section( 'wp-video-popup-settings-section', __( 'Settings', 'responsive-youtube-vimeo-popup' ), '', 'wp-video-popup-settings' );
+
+	// Settings fields.
+	add_settings_field( 'wp-video-popup-background-color', __( 'Overlay background color', 'responsive-youtube-vimeo-popup' ), 'wp_video_popup_background_color_callback', 'wp-video-popup-settings', 'wp-video-popup-settings-section' );
+	add_settings_field( 'wp-video-popup-size', __( 'Popup size', 'responsive-youtube-vimeo-popup' ), 'wp_video_popup_size_callback', 'wp-video-popup-settings', 'wp-video-popup-settings-section' );
+
+}
+add_action( 'admin_init', 'wp_video_popup_settings' );
+
+/**
+ * Background color callback.
+ */
+function wp_video_popup_background_color_callback() {
+	echo '<input type="text" name="wpvp_popup[bg_color]" value="" class="color-picker wp-video-popup-color-picker" data-alpha="true" data-default-color="rgba(0,0,0,0.88)" />';
+}
+
+/**
+ * Popup size callback.
+ */
+function wp_video_popup_size_callback() {
+
+	?>
+
+	<div class="wpvp-size-settings">
+		<ul class="wpvp-responsive-controls">
+			<li class="wpvp-responsive-control is-active" data-device="desktop">
+				<button type="button" class="wpvp-device-button" data-hint="<?php esc_attr_e( 'Desktop', 'responsive-youtube-vimeo-popup' ); ?>">
+					<i class="dashicons dashicons-desktop"></i>
+				</button>
+			</li>
+			<li class="wpvp-responsive-control" data-device="tablet">
+				<button type="button" class="wpvp-device-button" data-hint="<?php esc_attr_e( 'Tablet', 'responsive-youtube-vimeo-popup' ); ?>">
+					<i class="dashicons dashicons-tablet"></i>
+				</button>
+			</li>
+			<li class="wpvp-responsive-control" data-device="mobile">
+				<button type="button" class="wpvp-device-button" data-hint="<?php esc_attr_e( 'Mobile', 'responsive-youtube-vimeo-popup' ); ?>">
+					<i class="dashicons dashicons-smartphone"></i>
+				</button>
+			</li>
+		</ul>
+
+		<ul class="wpvp-responsive-sizes">
+			<li class="wpvp-responsive-size wpvp-responsive-size-desktop is-active" data-size-device="desktop">
+				<input type="text" name="wpvp_popup[sizes][desktop]" class="wpvp-size-field" placeholder="75%" value="" />
+
+				<p class="description">
+					<?php esc_html_e( 'Default: 1200px', 'responsive-youtube-vimeo-popup' ); ?>
+				</p>
+			</li>
+			<li class="wpvp-responsive-size wpvp-responsive-size-tablet" data-size-device="tablet">
+				<input type="text" name="wpvp_popup[sizes][tablet]" class="wpvp-size-field" value="" />
+			</li>
+			<li class="wpvp-responsive-size wpvp-responsive-size-mobile" data-size-device="mobile">
+				<input type="text" name="wpvp_popup[sizes][mobile]" class="wpvp-size-field" value="" />
+			</li>
+		</ul>
+	</div>
+
+	<?php
+
+}

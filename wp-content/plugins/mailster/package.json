@@ -1,0 +1,85 @@
+{
+	"name": "mailster",
+	"version": "4.1.17",
+	"description": "Mailster is a powerful email marketing plugin for WordPress.",
+	"author": "Xaver <xaver@everpress.co>",
+	"license": "GPL-2.0-or-later",
+	"keywords": [
+		"email",
+		"newsletter",
+		"marketing",
+		"mail",
+		"autoresponder",
+		"campaign",
+		"subscriber",
+		"list",
+		"email marketing",
+		"newsletter marketing",
+		"mail marketing",
+		"autoresponder marketing",
+		"campaign marketing",
+		"subscriber marketing",
+		"list marketing"
+	],
+	"homepage": "https://mailster.co",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/everpress-co/mailster.git"
+	},
+	"bugs": {
+		"url": "https://github.com/everpress-co/mailster/issues/new/choose"
+	},
+	"private": true,
+	"files": [
+		"*.php",
+		"build",
+		"patterns",
+		"classes",
+		"includes",
+		"licensing",
+		"templates",
+		"vendor",
+		"views",
+		"assets",
+		"LICENSE",
+		"CHANGELOG.md",
+		"SECURITY.md"
+	],
+	"dependencies": {
+		"@10up/block-components": "^1.19.4",
+		"@wordpress/api-fetch": "^7.42.0",
+		"@wordpress/block-editor": "^15.15.0",
+		"@wordpress/blocks": "^15.15.0",
+		"@wordpress/components": "^32.4.0",
+		"@wordpress/compose": "^7.42.0",
+		"@wordpress/core-data": "^7.42.0",
+		"@wordpress/data": "^10.42.0",
+		"@wordpress/date": "^5.42.0",
+		"@wordpress/edit-post": "^8.42.0",
+		"@wordpress/element": "^6.42.0",
+		"@wordpress/hooks": "^4.42.0",
+		"@wordpress/i18n": "^6.15.0",
+		"@wordpress/icons": "^12.0.0",
+		"@wordpress/plugins": "^7.42.0",
+		"@wordpress/server-side-render": "^6.18.0",
+		"classnames": "^2.5.1",
+		"lodash": "^4.17.21",
+		"react-select": "^5.9.0"
+	},
+	"devDependencies": {
+		"@wordpress/scripts": "^31.7.0",
+		"child_process": "^1.0.2",
+		"path": "^0.12.7",
+		"sounds-webpack-plugin": "^0.0.2",
+		"webpack-remove-empty-scripts": "^1.0.4"
+	},
+	"scripts": {
+		"build": "wp-scripts build --webpack-src-dir=blocks",
+		"plugin-zip": "wp-scripts plugin-zip",
+		"start": "wp-scripts start --webpack-src-dir=blocks",
+		"check-engines": "wp-scripts check-engines",
+		"build-blocks-manifest": "wp-scripts build-blocks-manifest",
+		"packages-update": "wp-scripts packages-update",
+		"lint:pkg-json": "wp-scripts lint-pkg-json"
+	}
+}
