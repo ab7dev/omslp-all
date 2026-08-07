@@ -2,8 +2,8 @@
 Contributors: nintechnet, bruandet
 Tags: malware, virus, security, protection, scanner
 Requires at least: 4.7.0
-Tested up to: 6.9
-Stable tag: 3.3
+Tested up to: 7.0
+Stable tag: 3.3.1
 License: GPLv3 or later
 Requires PHP: 7.1
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
@@ -107,9 +107,14 @@ Check out our [NinjaScanner Premium Edition](https://nintechnet.com/ninjascanner
 
 == Changelog ==
 
+= 3.3.1 =
+
+* Improved the code on all AJAX actions that checks if a file is readable/writable.
+* Small fixes and adjustments.
+
 = 3.3 =
 
-* The folder and file exclusion list will apply to premium plugins as well (i.e., plugins that aren't host on wordpress.org).
+* The folder and file exclusion list will apply to premium plugins and themes as well (i.e., not hosted on wordpress.org).
 * The default settings were adjusted to prevent a potential memory error or script execution timeout when running on low-cost shared hosting plans.
 
 = 3.2.8 =

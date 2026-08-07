@@ -39,11 +39,17 @@ global $current_snapshot; $current_snapshot = array();
 global $ignored_files;
 $ignored_files = array();
 if ( file_exists( NSCAN_IGNORED_LOG ) ) {
-	$ignored_files = unserialize( file_get_contents( NSCAN_IGNORED_LOG ) );
+	$ignored_files = unserialize(
+		file_get_contents( NSCAN_IGNORED_LOG ),
+		['allowed_classes' => false ]
+	);
 }
 
 if ( file_exists( NSCAN_TMP_SNAPSHOT ) ) {
-	$snapshot = unserialize( file_get_contents( NSCAN_TMP_SNAPSHOT ) );
+	$snapshot = unserialize(
+		file_get_contents( NSCAN_TMP_SNAPSHOT ),
+		['allowed_classes' => false ]
+	);
 	if ( empty( $snapshot['sys']['starttime'] ) ) {
 		$msg = __('Fatal error: Snapshot seems to be corrupted.', 'ninjascanner');
 		nscan_log_error( $msg );
@@ -1208,7 +1214,10 @@ function nscan_check_plugins( $lock_status ) {
 	$excluded_folders = $snapshot['tmp']['excluded_folders'];
 
 	// Retrieve list of plugins
-	$nscan_plugins_list = unserialize( file_get_contents( NSCAN_TMP_LIST ) );
+	$nscan_plugins_list = unserialize(
+		file_get_contents( NSCAN_TMP_LIST ),
+		['allowed_classes' => false ]
+	);
 	@unlink( NSCAN_TMP_LIST );
 
 	// Let's check their integrity if possible
@@ -1478,7 +1487,10 @@ function nscan_check_themes( $lock_status ) {
 	$excluded_folders = $snapshot['tmp']['excluded_folders'];
 
 	// Retrieve list of themes
-	$nscan_themes_list = unserialize( file_get_contents( NSCAN_TMP_LIST ) );
+	$nscan_themes_list = unserialize(
+		file_get_contents( NSCAN_TMP_LIST ),
+		['allowed_classes' => false ]
+	);
 	@unlink( NSCAN_TMP_LIST );
 
 	// Let's check their integrity if possible
@@ -1927,7 +1939,10 @@ function nscan_compare_snapshots( $lock_status ) {
 		);
 
 		$previous_snapshot = array();
-		$old_snapshot = unserialize( file_get_contents( NSCAN_OLD_SNAPSHOT ) );
+		$old_snapshot = unserialize(
+			file_get_contents( NSCAN_OLD_SNAPSHOT ),
+			['allowed_classes' => false ]
+		);
 
 		if ( empty( $old_snapshot['abspath'] ) ) {
 			nscan_log_warn( __('Old snapshot file seems corrupted. Skipping this step', 'ninjascanner') );
@@ -2025,7 +2040,10 @@ function nscan_compare_db_snapshots( $lock_status ) {
 			$message
 		);
 
-		$old_snapshot = unserialize( file_get_contents( NSCAN_OLD_SNAPSHOT ) );
+		$old_snapshot = unserialize(
+			file_get_contents( NSCAN_OLD_SNAPSHOT ),
+			['allowed_classes' => false ]
+		);
 
 		if ( empty( $old_snapshot['abspath'] ) ) {
 			nscan_log_warn( __('Old snapshot file seems corrupted. Skipping this step', 'ninjascanner') );
@@ -2256,7 +2274,10 @@ function nscan_run_antimalware( $lock_status ) {
 		goto ANTIMALWARESAVE; // goto power!
 	}
 
-	$files2check = unserialize( file_get_contents( NSCAN_FILES2CHECK ) );
+	$files2check = unserialize(
+		file_get_contents( NSCAN_FILES2CHECK ),
+		['allowed_classes' => false ]
+	);
 	if ( empty( $files2check ) ) {
 		$message = __('Files list array seems corrupted', 'ninjascanner');
 		nscan_log_error( $message );
@@ -2270,7 +2291,10 @@ function nscan_run_antimalware( $lock_status ) {
 		goto ANTIMALWARESAVE; // goto power!
 	}
 
-	$signatures = unserialize( base64_decode( $nscan_temp_sigs ) );
+	$signatures = unserialize(
+		base64_decode( $nscan_temp_sigs ),
+		['allowed_classes' => false ]
+	);
 	if ( empty( $signatures ) ) {
 		nscan_log_error( __('Signatures list is empty', 'ninjascanner') );
 	}
@@ -2681,7 +2705,7 @@ function nscan_various_checks( $lock_status ) {
 	if (! defined('NS_SKIP_GHOSTADMIN' ) ) {
 		global $wpdb;
 		$user_1 = $wpdb->get_results(
-			"SELECT {$wpdb->base_prefix}users.ID,{$wpdb->base_prefix}users.user_login,{$wpdb->base_prefix}users.user_pass,{$wpdb->base_prefix}users.user_nicename,{$wpdb->base_prefix}users.user_email,{$wpdb->base_prefix}users.user_registered,{$wpdb->base_prefix}users.display_name
+			"SELECT {$wpdb->base_prefix}users.ID,{$wpdb->base_prefix}users.user_login,{$wpdb->base_prefix}users.user_nicename,{$wpdb->base_prefix}users.user_email,{$wpdb->base_prefix}users.user_registered,{$wpdb->base_prefix}users.display_name
 			FROM {$wpdb->base_prefix}users
 			INNER JOIN {$wpdb->base_prefix}usermeta
 			ON ( {$wpdb->base_prefix}users.ID = {$wpdb->base_prefix}usermeta.user_id )

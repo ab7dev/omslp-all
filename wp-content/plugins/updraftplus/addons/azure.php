@@ -35,6 +35,30 @@ class UpdraftPlus_Addons_RemoteStorage_azure extends UpdraftPlus_RemoteStorage_A
 	// https://msdn.microsoft.com/en-us/library/azure/ee691964.aspx - maximum block size is 4MB
 	private $chunk_size = 2097152;
 
+	/**
+	 * Input and option field mappings with default values and supported contexts.
+	 *
+	 * @var array
+	 */
+	protected $input_option_field_mappings = array(
+		'account_name' => array(
+			'default_value' => '',
+			'contexts' => array('option', 'input'),
+		),
+		'key' => array(
+			'default_value' => '',
+			'contexts' => array('option', 'input'),
+		),
+		'container' => array(
+			'default_value' => '',
+			'contexts' => array('option', 'input'),
+		),
+		'endpoint' => array(
+			'default_value' => 'blob.core.windows.net',
+			'contexts' => array('option', 'input'),
+		),
+	);
+
 	public function __construct() {
 		// 3rd parameter: chunking? 4th: Test button?
 		parent::__construct('azure', 'Azure', true, true);
@@ -489,20 +513,6 @@ class UpdraftPlus_Addons_RemoteStorage_azure extends UpdraftPlus_RemoteStorage_A
 		// This options format is handled via only accessing options via $this->get_options()
 		return array('multi_options', 'config_templates', 'multi_storage', 'conditional_logic');
 	}
-
-	/**
-	 * Retrieve default options for this remote storage module.
-	 *
-	 * @return Array - an array of options
-	 */
-	public function get_default_options() {
-		return array(
-			'account_name' => '',
-			'key' => '',
-			'container' => '',
-			'endpoint' => 'blob.core.windows.net',
-		);
-	}
 	
 	public function do_bootstrap($opts) {
 
@@ -691,12 +701,15 @@ class UpdraftPlus_Addons_RemoteStorage_azure extends UpdraftPlus_RemoteStorage_A
 			'credentials_creation_link_text' => __('Create Azure credentials in your Azure developer console.', 'updraftplus'),
 			'configuration_helper_link_text' => __('For more detailed instructions, follow this link.', 'updraftplus'),
 			'input_account_name_label' => sprintf(__('%s Account Name', 'updraftplus'), __('Azure', 'updraftplus')),
+			'input_account_name_placeholder' => __('Enter your account name', 'updraftplus'),
 			'input_account_name_title' => __('This is not your Azure login - see the instructions if needing more guidance.', 'updraftplus'),
 			'input_key_label' => sprintf(__('%s Key', 'updraftplus'), __('Azure', 'updraftplus')),
 			'input_key_type' => apply_filters('updraftplus_admin_secret_field_type', 'password'),
+			'input_key_placeholder' => __('Enter your account key', 'updraftplus'),
 			'input_container_label' => sprintf(__('%s Container', 'updraftplus'), __('Azure', 'updraftplus')),
 			'input_container_title' => sprintf(__('Enter the path of the %s you wish to use here.', 'updraftplus'), 'container').' '.sprintf(__('If the %s does not already exist, then it will be created.'), 'container'),
 			'input_container_link_text' => __("See Microsoft's guidelines on container naming by following this link.", 'updraftplus'),
+			'input_container_placeholder' => __('Enter your container name', 'updraftplus'),
 			'input_prefix_label' => wp_kses(sprintf(__('%s Prefix', 'updraftplus'), __('Azure', 'updraftplus')).' <em>('.__('optional', 'updraftplus').')</em>', $this->allowed_html_for_content_sanitisation()),
 			'input_prefix_title' => sprintf(__('You can enter the path of any %s virtual folder you wish to use here.', 'updraftplus'), 'Azure').' '.sprintf(__('If you leave it blank, then the backup will be placed in the root of your %s', 'updraftplus').'.', __('container', 'updraftplus')),
 			'input_endpoint_label' => __('Azure Account', 'updraftplus'),
@@ -720,6 +733,28 @@ class UpdraftPlus_Addons_RemoteStorage_azure extends UpdraftPlus_RemoteStorage_A
 	protected function do_transform_options_for_template($opts) {
 		$opts['container'] = empty($opts['container']) ? '' : strtolower($opts['container']);
 		return $opts;
+	}
+
+	/**
+	 * Customize generated field data using legacy mapping values.
+	 *
+	 * Used by transform_template_properties_to_fields_structure()
+	 * to allow child classes to adjust the generated field structure
+	 * based on legacy data and field mapping requirements.
+	 *
+	 * @param array  $field               Field data.
+	 * @param array  $template_properties Template properties.
+	 * @param string $field_name          Field name.
+	 * @param array  $option              Field mapping option.
+	 *
+	 * @return array
+	 */
+	public function configure_field_from_legacy($field, $template_properties, $field_name, $option) {
+		$prefix = 'input_'.$option['template_property_input_mapping'].'_';
+
+		if (empty($field['tooltip']) && isset($template_properties[$prefix.'title'])) $field['tooltip'] = array('text' => $template_properties[$prefix.'title']);
+
+		return $field;
 	}
 }
 

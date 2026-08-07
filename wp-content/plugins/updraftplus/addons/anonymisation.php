@@ -223,7 +223,7 @@ class UpdraftPlus_Anonymisation_Functions {
 		} elseif ('wp' == $whichdb && (!empty($table_prefix) && strtolower($table_prefix.'usermeta') == strtolower($table))) {
 			foreach ($result as $key => $data) {
 				if ($user_id != $data['user_id']) {
-					if ('first_name' == $data['meta_key'] || 'last_name' == $data['meta_key']) $result[$key]['meta_value'] = md5(wp_rand());
+					if ('first_name' == $data['meta_key'] || 'last_name' == $data['meta_key']) $result[$key]['meta_value'] = md5(wp_rand()); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- False positive: no meta query is being fired here.
 				}
 			}
 		}
@@ -265,7 +265,7 @@ class UpdraftPlus_Anonymisation_Functions {
 		} elseif ('wp' == $whichdb && (!empty($table_prefix) && strtolower($table_prefix.'usermeta') == strtolower($table))) {
 			foreach ($result as $key => $data) {
 				if (!in_array($data['user_id'], $user_ids)) {
-					if ('first_name' == $data['meta_key'] || 'last_name' == $data['meta_key']) $result[$key]['meta_value'] = md5(wp_rand());
+					if ('first_name' == $data['meta_key'] || 'last_name' == $data['meta_key']) $result[$key]['meta_value'] = md5(wp_rand()); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- False positive: no meta query is being fired here.
 				}
 			}
 		}
@@ -289,7 +289,7 @@ class UpdraftPlus_Anonymisation_Functions {
 			$wc_anon_fields = self::get_wc_order_anonymize_fields();
 			foreach ($result as $key => $data) {
 				if (array_key_exists($data['meta_key'], $wc_anon_fields)) {
-					$result[$key]['meta_value'] = call_user_func($anonymisation_function, $wc_anon_fields[$data['meta_key']], $data['meta_value']);
+					$result[$key]['meta_value'] = call_user_func($anonymisation_function, $wc_anon_fields[$data['meta_key']], $data['meta_value']); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value -- False positive: no meta query is being fired here.
 				}
 			}
 		}

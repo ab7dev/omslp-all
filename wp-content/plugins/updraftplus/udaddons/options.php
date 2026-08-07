@@ -142,7 +142,11 @@ class UpdraftPlusAddOns_Options2 {
 	 * Output a notice suitable for the dashboard warning that PHP is too old.
 	 */
 	public function show_admin_warning_php() {
-		$this->show_admin_warning(esc_html(sprintf(__("Your web server's version of PHP is too old (%s) - UpdraftPlus expects at least %s.", 'updraftplus'), PHP_VERSION, '5.2.4').' '.__("You can try it, but don't be surprised if it does not work.", 'updraftplus').' '.__("To fix this problem, contact your web hosting company.", 'updraftplus')), 'error');
+		/* translators: 1: Current PHP version number, 2: Minimum required PHP version number */
+		$message = sprintf(__("Your web server's version of PHP is too old (%1\$s) - UpdraftPlus expects at least %2\$s.", 'updraftplus'), PHP_VERSION, '5.2.4');
+		$message .= ' '.__('You can try it, but don\'t be surprised if it does not work.', 'updraftplus');
+		$message .= ' '.__('To fix this problem, contact your web hosting company.', 'updraftplus');
+		$this->show_admin_warning(esc_html($message), 'error');
 	}
 
 	/**
@@ -247,7 +251,10 @@ class UpdraftPlusAddOns_Options2 {
 		}
 
 		if ('updraftplus' != basename(dirname(dirname(__FILE__)))) {
-			echo '<div class="error below-h2" style="font-size: 120%;"><p><strong>'.esc_html__('Error', 'updraftplus').':</strong> '.sprintf(esc_html__("You have installed this plugin in your plugins folder (%s) with a non-default name %s which is different to %s.", 'updraftplus'), esc_html(WP_PLUGIN_DIR), '<strong>'.esc_html(basename(dirname(dirname(__FILE__)))).'</strong>', '<strong>updraftplus</strong>').' '.esc_html__("This is incompatible with WordPress's updates mechanism; you will not be able to receive updates.", 'updraftplus').'</p></div>';
+			echo '<div class="error below-h2" style="font-size: 120%;"><p><strong>'.esc_html__('Error', 'updraftplus').':</strong> ';
+			/* translators: 1: WordPress plugins folder path, 2: Current (non-default) plugin folder name, 3: Expected default plugin folder name */
+			echo sprintf(esc_html__("You have installed this plugin in your plugins folder (%1\$s) with a non-default name %2\$s which is different to %3\$s.", 'updraftplus'), esc_html(WP_PLUGIN_DIR), '<strong>'.esc_html(basename(dirname(dirname(__FILE__)))).'</strong>', '<strong>updraftplus</strong>');
+			echo ' '.esc_html__('This is incompatible with WordPress\'s updates mechanism; you will not be able to receive updates.', 'updraftplus').'</p></div>';
 		}
 
 		if (defined('WP_HTTP_BLOCK_EXTERNAL') && WP_HTTP_BLOCK_EXTERNAL) {
@@ -256,7 +263,10 @@ class UpdraftPlusAddOns_Options2 {
 
 		$wp_http = new WP_Http();
 		if (is_callable(array($wp_http, 'block_request')) && $wp_http->block_request($updraftplus_addons2->url)) {
-			echo '<div class="notice inline"><p>'.sprintf(esc_html__('Please list %s in the %s constant.', 'updraftplus'), '<strong>updraftplus.com</strong>', '<strong>WP_ACCESSIBLE_HOSTS</strong>').' '.sprintf(esc_html__('This ensures %s can connect and update.', 'updraftplus'), 'UpdraftPlus').'</p></div>';
+			/* translators: 1: Domain name (updraftplus.com), 2: WordPress constant name (WP_ACCESSIBLE_HOSTS) */
+			echo '<div class="notice inline"><p>'.sprintf(esc_html__('Please list %1$s in the %2$s constant.', 'updraftplus'), '<strong>updraftplus.com</strong>', '<strong>WP_ACCESSIBLE_HOSTS</strong>').' ';
+			/* translators: %s: Plugin name (UpdraftPlus) */
+			echo sprintf(esc_html__('This ensures %s can connect and update.', 'updraftplus'), 'UpdraftPlus').'</p></div>';
 		}
 
 		if ($this->connected) {

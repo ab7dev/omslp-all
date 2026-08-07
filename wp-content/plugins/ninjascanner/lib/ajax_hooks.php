@@ -340,7 +340,7 @@ function nscan_ajax_quarantine() {
 	}
 
 	$file = base64_decode( $_POST['file'] );
-	ns_win_or_linux( $file );
+	$file = nscan_validate_file_path( $file );
 
 	if (! file_exists( $file ) ) {
 		echo '404';
@@ -383,7 +383,7 @@ function nscan_ajax_ignore() {
 	}
 
 	$file = base64_decode( $_POST['file'] );
-	ns_win_or_linux( $file );
+	$file = nscan_validate_file_path( $file );
 
 	if (! file_exists( $file ) ) {
 		echo '404';
@@ -413,7 +413,7 @@ function nscan_ajax_restore() {
 	}
 
 	$file = base64_decode( $_POST['file'] );
-	ns_win_or_linux( $file );
+	$file = nscan_validate_file_path( $file );
 
 	if (! file_exists( $file ) ) {
 		_e('Error: File does not exist.', 'ninjascanner');

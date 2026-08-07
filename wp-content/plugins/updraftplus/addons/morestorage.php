@@ -16,7 +16,7 @@ new UpdraftPlus_Addon_MoreStorage;
 class UpdraftPlus_Addon_MoreStorage {
 
 	public function __construct() {
-		add_filter('updraftplus_storage_printoptions', array($this, 'storage_printoptions'), 10, 2);
+		add_filter('updraftplus_storage_printoptions', '__return_true');
 		add_filter('updraftplus_storage_printoptions_multi', array($this, 'storage_printoptions_multi'), 10, 1);
 		// add_action('updraftplus_config_print_after_storage', array($this, 'config_print_after_storage'));
 		add_action('updraftplus_config_print_before_storage', array($this, 'config_print_before_storage'), 10, 2);
@@ -26,6 +26,7 @@ class UpdraftPlus_Addon_MoreStorage {
 		add_filter('updraftplus_savestorage', array($this, 'savestorage'), 10, 2);
 		add_action('updraftplus_after_remote_storage_heading_message', array($this, 'after_remote_storage_heading_message'));
 		add_filter('updraft_boot_backup_remote_storage_instance_include', array($this, 'boot_backup_remote_storage_instance_include'), 10, 5);
+		add_action('updraftplus_after_remote_storage', array($this, 'display_remote_storage_options'));
 	}
 
 	public function after_remote_storage_heading_message() {
@@ -224,13 +225,14 @@ class UpdraftPlus_Addon_MoreStorage {
 	public function storage_printoptions_multi() {
 		return 'multi';
 	}
-	
-	public function storage_printoptions($ret, $active_service) {// phpcs:ignore VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable -- Filter use
+
+	/**
+	 * Display multiple remote storage options in the admin settings.
+	 */
+	public function display_remote_storage_options() {
 		global $updraftplus;
 		add_action('admin_print_footer_scripts', array($this, 'admin_print_footer_scripts'));
-
 		?>
-		</div></td></tr>
 		<tr>
 			<th colspan="2"><h2 class="updraft_settings_sectionheading"><?php esc_html_e('Remote Storage Options', 'updraftplus');?></h2>
 		</tr>
@@ -238,12 +240,12 @@ class UpdraftPlus_Addon_MoreStorage {
 			<td colspan="2" style="padding:0px">
 				<?php
 					foreach ($updraftplus->backup_methods as $method => $description) {
-				?>
-					<a class="<?php echo esc_attr('updraftplus-nav-tab remote-tab updraft-hidden remote-tab-'.$method); ?>" id="<?php echo esc_attr('remote-tab-'.$method); ?>" name="<?php echo esc_attr($method); ?>" href="#" style="display:none"><?php echo esc_html($description);?></a>
-				<?php
+						echo '<a class="updraftplus-nav-tab remote-tab updraft-hidden remote-tab-'.esc_attr($method).'" id="remote-tab-'.esc_attr($method).'" name="'.esc_attr($method).'" href="#" style="display:none;">'.esc_html($description)."</a>\n";
 					}
-		return true;
-
+				?>
+			</td>
+		</tr>
+		<?php
 	}
 
 	/**

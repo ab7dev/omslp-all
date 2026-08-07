@@ -153,7 +153,10 @@ if (! empty( $nscan_options['sandbox'] ) ) {
 // Check if we have a quarantined files log:
 $quarantined_files = array();
 if ( file_exists( NSCAN_QUARANTINE .'/quarantine.php' ) ) {
-	$quarantined_files = unserialize( file_get_contents( NSCAN_QUARANTINE .'/quarantine.php' ) );
+	$quarantined_files = unserialize(
+		file_get_contents( NSCAN_QUARANTINE .'/quarantine.php' ),
+		['allowed_classes' => false ]
+	);
 }
 
 // Save its new location and name to the quarantined files log:

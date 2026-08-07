@@ -217,7 +217,7 @@ function help_nfsubpolicies() {
 
 		<p><strong>' . __('Block <code>POST</code> requests in the themes folder <code>/wp-content/themes</code>', 'nfwplus'). '</strong><br />' . __('This option can be useful to block hackers from installing backdoor in the PHP theme files. However, because some custom themes may include an HTML form (contact, search form etc), this option is not enabled by default.', 'nfwplus'). '</p>
 
-		<p><strong>' . __('Force HTTPS for admin and logins <code>FORCE_SSL_ADMIN</code>', 'nfwplus'). '</strong><br />' . __('Enable this option when you want to secure logins and the admin area so that both passwords and cookies are never sent in the clear. Ensure that you can access your admin console from HTTPS before enabling this option, otherwise you will lock yourself out of your site!', 'nfwplus'). '</p>
+		<p><strong>' . __('Force HTTPS for admin and logins <code>FORCE_SSL_ADMIN</code>', 'nfwplus'). '</strong><br />' . __('Enable this option when you want to secure logins and the admin area so that both passwords and cookies are never sent in the clear. Ensure that you can access your admin dashboard from HTTPS before enabling this option, otherwise you will lock yourself out of your site!', 'nfwplus'). '</p>
 
 		<p><strong>' . __('Disable the plugin and theme editor <code>DISALLOW_FILE_EDIT</code>', 'nfwplus'). '</strong><br />' . __('Disabling the plugin and theme editor provides an additional layer of security if a hacker gains access to a well-privileged user account.', 'nfwplus'). '</p>
 
@@ -241,14 +241,10 @@ function help_nfsubpolicies() {
 
 
 		'<h3>' . __('HTTP POST variable', 'nfwplus'). '</h3>' .
-		__('Whether to scan and/or sanitise the <code>POST</code> variable.', 'nfwplus').
+		__('Whether to scan the <code>POST</code> variable.', 'nfwplus').
 		'<p><strong>'. __('Decode Base64-encoded <code>POST</code> variable:', 'nfwplus'). '</strong><br />' . __('NinjaFirewall will decode and scan base64 encoded values in order to detect obfuscated malicious code. This option is only available for the <code>POST</code> variable.', 'nfwplus'). '</p>
 
-
-		<h3>' . __('HTTP REQUEST variable', 'nfwplus'). '</h3>'.
-		__('Whether to sanitise the <code>REQUEST</code> variable.', 'nfwplus').
-
-		'<h3>' . __('Cookies', 'nfwplus'). '</h3>'.
+		<h3>' . __('Cookies', 'nfwplus'). '</h3>'.
 		__('Whether to scan and/or sanitise cookies.', 'nfwplus').
 
 
@@ -577,7 +573,7 @@ function help_nfsubevent() {
 	get_current_screen()->add_help_tab( array(
 		'id'        => 'log01',
 		'title'     => __('Event Notifications', 'nfwplus'),
-		'content'   => '<br />' . __('NinjaFirewall can alert you by email on specific events triggered within your blog. They include installations, updates, activations etc, as well as users login and modification of any administrator account in the database. Some of those alerts are enabled by default and it is highly recommended to keep them enabled. It is not unusual for a hacker, after breaking into your WordPress admin console, to install or just to upload a backdoored plugin or theme in order to take full control of your website.', 'nfwplus')
+		'content'   => '<br />' . __('NinjaFirewall can alert you by email on specific events triggered within your blog. They include installations, updates, activations etc, as well as users login and modification of any administrator account in the database. Some of those alerts are enabled by default and it is highly recommended to keep them enabled. It is not unusual for a hacker, after breaking into your WordPress admin dashboard, to install or just to upload a backdoored plugin or theme in order to take full control of your website.', 'nfwplus')
 	) );
 }
 /* ================================================================== */ // i18n+
@@ -598,7 +594,7 @@ function help_nfsublogin() {
 
 		<strong>' . __('Yes, if under attack:', 'nfwplus') . '</strong>
 		<br />' .
-		__('The protection will be triggered when too many login attempts are detected, regardless of the offending IP. It blocks the attack instantly and prevents it from reaching WordPress, but still allows you to access your administration console using either the predefined username/password combination or the captcha code.', 'nfwplus') . '
+		__('The protection will be triggered when too many login attempts are detected, regardless of the offending IP. It blocks the attack instantly and prevents it from reaching WordPress, but still allows you to access your admin dashboard using either the predefined username/password combination or the captcha code.', 'nfwplus') . '
 		<br />
 		<strong>' . __('Always ON:', 'nfwplus') . '</strong>
 		<br />'.
@@ -624,7 +620,6 @@ function help_nfsublogin() {
 		<br />' .
 		__('If you have a shared hosting account, keep this option disabled as you do not have any access to the server\'s logs.', 'nfwplus') .
 		'<br />' .
-		__('On Debian-based systems, the log is located in <code>/var/log/auth.log</code>, and on Red Hat-based systems in <code>/var/log/secure</code>. The logline uses the following format:', 'nfwplus') .
 		'<p><code>ninjafirewall[<font color="red">AA</font>]: Possible brute-force attack from <font color="red">BB</font> on <font color="red">CC</font> (<font color="red">DD</font>). Blocking access for <font color="red">EE</font>mn.</code><p>
 		<ul>
 			<li>' . __('AA: the process ID (PID).', 'nfwplus') . '</li>
@@ -635,8 +630,11 @@ function help_nfsublogin() {
 		</ul>'.
 		__('Sample loglines:', 'nfwplus') .
 		'<br />
-		<textarea class="large-text code" style="height:80px;" wrap="off">Aug 31 01:40:35 www ninjafirewall[6191]: Possible brute-force attack from 172.16.0.1 on mysite.com (wp-login.php). Blocking access for 5mn.'. "\n" . 'Aug 31 01:45:28 www ninjafirewall[6192]: Possible brute-force attack from fe80::6e88:14ff:fe3e:86f0 on blog.domain.com (XML-RPC API). Blocking access for 25mn.</textarea>
-		<p><span class="dashicons dashicons-warning nfw-warning"></span>&nbsp;' . sprintf( __('Be careful if you are behind a load balancer, reverse-proxy or CDN because the Login Protection feature will always record the <code>REMOTE_ADDR</code> IP. If you have an application parsing the AUTH log in order to ban IPs (e.g. Fail2ban), you <strong>must</strong> setup your HTTP server to forward the correct IP (or use the <code><a href="%s">.htninja</a></code> file), otherwise you will likely block legitimate users.', 'nfwplus'), 'https://blog.nintechnet.com/ninjafirewall-wp-edition-the-htninja-configuration-file/') . '</p>
+		<textarea class="large-text code" style="height:80px;" wrap="off">Aug 31 01:40:35 www ninjafirewall[6191]: Possible brute-force attack from 172.16.0.1 on mysite.com (wp-login.php). Blocking access for 5mn.'. "\n" . 'Aug 31 01:45:28 www ninjafirewall[6192]: Possible brute-force attack from fe80::6e88:14ff:fe3e:86f0 on blog.domain.com (XML-RPC API). Blocking access for 25mn.</textarea>'.
+		'<p>'.
+		__('Note: On Debian, systemd-journald serves as the primary system log collector. Events can be viewed by running the following command:', 'nfwplus') .
+			'</p><p><code># journalctl -t ninjafirewall</code></p>'.
+		'<p><span class="dashicons dashicons-warning nfw-warning"></span>&nbsp;' . sprintf( __('Be careful if you are behind a load balancer, reverse-proxy or CDN because the Login Protection feature will always record the <code>REMOTE_ADDR</code> IP. If you have an application parsing the AUTH log in order to ban IPs (e.g. Fail2ban), you <strong>must</strong> setup your HTTP server to forward the correct IP (or use the <code><a href="%s">.htninja</a></code> file), otherwise you will likely block legitimate users.', 'nfwplus'), 'https://blog.nintechnet.com/ninjafirewall-wp-edition-the-htninja-configuration-file/') . '</p>
 		</div>'
 	) );
 }
@@ -726,7 +724,7 @@ function help_nfsublog() {
 			__("If you have a shared hosting account, keep this option disabled as you do not have any access to the server logs.", 'nfwplus') .
 			'</p>' .
 			__('The logline uses the following format:', 'nfwplus') .
-			'<p><code>ninjafirewall[<font color="red">AA</font>]: <font color="red">BB</font>: #<font color="red">CCCCCCC</font>: <i>Some event</i> from <font color="red">DD</font> on <font color="red">EE</font></code><p>
+			'<p><code>ninjafirewall[<font color="red">AA</font>]: <font color="red">BB</font>: #<font color="red">CCCCCCC</font>: <i>Some event</i> from <font color="red">DD</font> on <font color="red">EE</font></code></p>
 			<ul>
 				<li>' . __('AA: the process ID (PID).', 'nfwplus') . '</li>
 				<li>' . __('BB: the level of severity as it appears in the firewall log. It can be <code>CRITICAL</CODE>, <CODE>HIGH</CODE>, <CODE>MEDIUM</CODE>, <CODE>INFO</CODE>, <CODE>UPLOAD</CODE> or <CODE>DEBUG_ON</CODE>.', 'nfwplus') . '</li>
@@ -738,9 +736,12 @@ function help_nfsublog() {
 			'<br />
 			<textarea class="large-text code" style="height:80px;" wrap="off">Oct  2 14:57:46 www ninjafirewall[11798]: INFO: #2654956: Logged in user from 12.24.56.78 on mysite.com'. "\n" . 'Oct  2 14:58:05 www ninjafirewall[23121]: HIGH: #7296291: Cross-site scripting from fe80::6e88:14ff:fe3e:86f0 on blog.domain.com</textarea>' .
 
+			'<p>'.__('On Debian, systemd-journald serves as the primary system log collector. Events can be viewed by running the following command:', 'nfwplus') .
+			'</p><p><code># journalctl -t ninjafirewall</code></p>'.
+
 			'<p><span class="dashicons dashicons-warning nfw-warning"></span>&nbsp;'.
 			sprintf( __('This logging option does not apply to the brute-force protection which can be set up separately to write events to the server authentication log. See the <a href="%s">Login Protection</a> page.', 'nfwplus'), '?page=nfsubloginprot') .
-			'</p><br />'.
+			'</p>'.
 
 			'</div>'
 

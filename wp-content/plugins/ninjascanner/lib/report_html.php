@@ -52,7 +52,10 @@ function html_report() {
 		return $report;
 	}
 
-	$snapshot = unserialize( file_get_contents( NSCAN_SNAPSHOT ) );
+	$snapshot = unserialize(
+		file_get_contents( NSCAN_SNAPSHOT ),
+		['allowed_classes' => false ]
+	);
 
 	if ( empty( $snapshot['abspath'] ) ) {
 		$report['error'] = __("Snapshot seems corrupted (missing 'abspath' field), scan report cannot be created.", 'ninjascanner');
@@ -332,7 +335,7 @@ function html_report() {
 			}
 		}
 
-		// 4 == Drop-ins plugin
+		// 4 == Drop-in plugin
 		if (! empty( $snapshot['plugins_dropins'] ) ) {
 			foreach( $snapshot['plugins_dropins'] as $slug => $arr ) {
 
@@ -1305,11 +1308,17 @@ function nscan_retrieve_excluded_files() {
 
 	// Quarantined files list:
 	if ( file_exists( NSCAN_QUARANTINE .'/quarantine.php' ) ) {
-		$ignored_quarantined['quarantined'] = unserialize( file_get_contents( NSCAN_QUARANTINE .'/quarantine.php' ) );
+		$ignored_quarantined['quarantined'] = unserialize(
+			file_get_contents( NSCAN_QUARANTINE .'/quarantine.php' ),
+			['allowed_classes' => false ]
+		);
 	}
 	// Ignored files list:
 	if ( file_exists( NSCAN_IGNORED_LOG ) ) {
-		$ignored_quarantined['ignored'] = unserialize( file_get_contents( NSCAN_IGNORED_LOG ) );
+		$ignored_quarantined['ignored'] = unserialize(
+			file_get_contents( NSCAN_IGNORED_LOG ),
+			['allowed_classes' => false ]
+		);
 	}
 
 	return $ignored_quarantined;
@@ -1585,7 +1594,7 @@ function ns_build_rows( $files_list, $id, $table_name ) {
 		$file_ignore = __('Ignore file', 'ninjascanner');
 		$file_quarantine = __('Quarantine file', 'ninjascanner');
 		$file_mu = __('Must-Use plugin', 'ninjascanner');
-		$file_dropins = __('Drop-Ins plugin', 'ninjascanner');
+		$file_dropins = __('Drop-in plugin', 'ninjascanner');
 		$file_suspicious = __('Suspicious file', 'ninjascanner');
 		$site_google = __('Site is on Google Safe Browsing blacklist.', 'ninjascanner');
 
@@ -1863,7 +1872,7 @@ NO_STATS:
 				</tr>
 				';
 
-			// 4 == Drop-ins plugin
+			// 4 == Drop-in plugin
 			} elseif ( $what == 4 ) {
 
 				++$items;
@@ -1898,7 +1907,7 @@ NO_STATS:
 									<td style="width:8%;font-weight:bold;padding:1;text-align:right">'. $f_change .'</td>
 									<td style="width:20%;padding:1;">'. $file_stats[5] .'</td>
 									<td class="table-file-info">'. $f_note .'</td>
-									<td style="width:46%;padding:1;">'. __('This file is a Drop-Ins plugin (a plugin that can be used to replace some core functionality of WordPress) and could not be compared to the original one. Make sure it was not tampered with or installed by someone else.', 'ninjascanner' ) .'</td>
+									<td style="width:46%;padding:1;">'. __('This file is a Drop-in plugin (a plugin that can be used to replace some core functionality of WordPress) and could not be compared to the original one. Make sure it was not tampered with or installed by someone else.', 'ninjascanner' ) .'</td>
 								</tr>
 							</table>
 						</div>

@@ -3,7 +3,7 @@ Contributors: nintechnet
 Tags: security, firewall, malware, virus, protection
 Requires at least: 4.9
 Tested up to: 7.0
-Stable tag: 4.8.5
+Stable tag: 4.9
 Requires PHP: 7.1
 License: Modification and distribution of this software require express written permission from the author ~ (c) NinTechNet Limited
 
@@ -160,6 +160,37 @@ NinjaFirewall includes GeoLite data created by MaxMind, available from http://ww
 1. Upload `nfwplus` folder to the `/wp-content/plugins/` directory.
 2. Activate the plugin through the 'Plugins' menu in WordPress.
 3. Plugin settings are located in 'NinjaFirewall+' menu.
+
+= 4.9 =
+
+* Improved the security updates notification.
+* WP+ Edition (Premium): Fixed a bug where the dashboard may not always show a warning if the admin is not whitelisted.
+* The "Sanitise POST variable" and "Sanitise REQUEST variable" policies were removed.
+* Some little modifications to the UI of the plugin.
+* It is no longer possible to configure NinjaFirewall to use PHP sessions; If your site was using such configuration, it will automatically switch to NinjaFirewall sessions instead, which were introduced several months ago and are a much better option.
+* WP+ Edition (Premium): Updated IP location databases.
+* Many small fixes and adjustments.
+
+= 4.8.8 =
+
+* Because WordPress.org enforces a mandatory 24-hour update delay on all new plugin releases, as soon as a new security updates is available for a plugin, NinjaFirewall will allow you to update it immediately from the "Plugins" page.
+* Small fixes and adjustments.
+
+= 4.8.7 =
+
+* Fixed a PHP warning in File Check.
+* Fixed a potential "Allowed memory size exhausted" error.
+* Several small fixes and adjustments under the hood.
+* WP+ Edition (Premium): Updates Stripe and Airwallex webhook notification IP addresses in the Access Control section.
+* WP+ Edition (Premium): Updated list of banned bots in the Access Control section.
+
+= 4.8.6 =
+
+* Many small fixes and adjustments to make NinjaFirewall better.
+* Renamed/standardised all filenames to improve project readability and maintainability.
+* Errors occurring during the firewall activation will be displayed with all details.
+* WP+ Edition (Premium): the bot list is now sorted in alphabetic order.
+* WP+ Edition (Premium): Updated IP location databases.
 
 = 4.8.5 =
 

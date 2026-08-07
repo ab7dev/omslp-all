@@ -40,3 +40,41 @@ function remove_dates_property_from_webpage( $data ) {
     }
     return $data;
 }
+
+/**
+ * Ergänzt im von Yoast erzeugten Breadcrumb-Schema beim letzten Eintrag
+ * die aktuelle kanonische URL, falls das Feld "item" fehlt.
+ *
+ * cr-1206-yoast-breadcrumb-item-fix
+ */
+add_filter(
+    'wpseo_schema_breadcrumb',
+    function (array $piece): array {
+        if (
+            ! is_singular()
+            || empty($piece['itemListElement'])
+            || ! is_array($piece['itemListElement'])
+        ) {
+            return $piece;
+        }
+
+        $last_index = array_key_last($piece['itemListElement']);
+
+        if ($last_index === null) {
+            return $piece;
+        }
+
+        $current_url = wp_get_canonical_url(get_queried_object_id());
+
+        if (! $current_url) {
+            $current_url = get_permalink(get_queried_object_id());
+        }
+
+        if ($current_url && empty($piece['itemListElement'][$last_index]['item'])) {
+            $piece['itemListElement'][$last_index]['item'] = esc_url_raw($current_url);
+        }
+
+        return $piece;
+    },
+    11
+);

@@ -50,6 +50,42 @@ class UpdraftPlus_Addons_RemoteStorage_backblaze extends UpdraftPlus_RemoteStora
 	private $buckets = array();
 
 	/**
+	 * Input and option field mappings with default values and supported contexts.
+	 *
+	 * @var array
+	 */
+	protected $input_option_field_mappings = array(
+		'account_id' => array(
+			'default_value' => '',
+			'template_property_input_mapping' => 'key_id',
+			'contexts' => array('option', 'input'),
+		),
+		'key' => array(
+			'default_value' => '',
+			'template_property_input_mapping' => 'application_key',
+			'contexts' => array('option', 'input'),
+		),
+		'single_bucket_key_id' => array(
+			'default_value' => '',
+			'template_property_input_mapping' => 'bucket_key_id',
+			'contexts' => array('option', 'input'),
+		),
+		'bucket_name' => array(
+			'default_value' => '',
+			'contexts' => array('option', 'input'),
+		),
+		'backup_path' => array(
+			'default_value' => '',
+			'contexts' => array('option', 'input'),
+		),
+		'object_lock_duration' => array(
+			'default_value' => 0,
+			'template_property_input_mapping' => 'object_lock',
+			'contexts' => array('option', 'input'),
+		),
+	);
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
@@ -631,22 +667,6 @@ class UpdraftPlus_Addons_RemoteStorage_backblaze extends UpdraftPlus_RemoteStora
 	}
 	
 	/**
-	 * Retrieve default options for this remote storage module.
-	 *
-	 * @return Array - an array of options
-	 */
-	public function get_default_options() {
-		return array(
-			'account_id' => '',
-			'key' => '',
-			'bucket_name' => '',
-			'backup_path' => '',
-			'single_bucket_key_id' => '',
-			'object_lock_duration' => 0
-		);
-	}
-	
-	/**
 	 * Perform any boot-strapping functions, and return a client instance
 	 *
 	 * @param Array	  $opts	   - instance options
@@ -780,16 +800,22 @@ class UpdraftPlus_Addons_RemoteStorage_backblaze extends UpdraftPlus_RemoteStora
 			'configuration_helper_link_text' => sprintf(__('For help configuring %s, including screenshots, follow this link.', 'updraftplus'), 'Backblaze'),
 			'input_key_id_label' => __('Master Application Key ID', 'updraftplus'),
 			'input_key_id_title' => sprintf(__('Get these settings from %s, or sign up %s.', 'updraftplus'), '<a aria-label="secure.backblaze.com/b2_buckets.htm" target="_blank" href="https://secure.backblaze.com/b2_buckets.htm">'.__('here', 'updraftplus').'</a>', '<a aria-label="www.backblaze.com/b2/" target="_blank" href="https://www.backblaze.com/b2/">'.__('here', 'updraftplus').'</a>'),
+			'input_key_id_placeholder' => __('Paste your master application key ID here', 'updraftplus'),
 			'input_application_key_label' => __('Application key', 'updraftplus'),
 			'input_application_key_type' => apply_filters('updraftplus_admin_secret_field_type', 'password'),
+			'input_application_key_placeholder' => __('Paste your key here', 'updraftplus'),
 			'input_bucket_key_id_label' => __('Bucket application key ID', 'updraftplus'),
 			'input_bucket_key_id_title' => __('This is needed if, and only if, your application key was a bucket-specific application key (not a master key)', 'updraftplus'),
+			'input_bucket_key_id_placeholder' => __('Paste your application key ID here', 'updraftplus'),
 			'input_backup_path_label' => __('Backup path', 'updraftplus'),
+			'input_object_lock_type' => 'number',
+			'input_object_lock_min_value' => 0,
 			'input_object_lock_max_value' => self::MAX_OBJECT_LOCK_DURATION,
 			'input_object_lock_label' => __('Object lock duration (days)', 'updraftplus'),
 			'input_object_lock_title' => __('Object lock is a Backblaze B2 feature that prevents data from being changed or deleted for a given number of days.', 'updraftplus').' '.__('Use this to protect your data from hackers or for regulatory compliance reasons.', 'updraftplus').' '.__('0 days means no lock is applied.', 'updraftplus'),
 			'read_more_object_lock' => ' <a target="_blank" href="https://www.backblaze.com/docs/cloud-storage-object-lock">'.__('Read more about the Backblaze Object Lock', 'updraftplus').'</a>.',
 			'input_object_lock_warning' => __('A file which is locked cannot be deleted by any means until the lock time duration has expired.', 'updraftplus'),
+			'input_bucket_name_placeholder' => __('Example: my-bucket/updraftplus', 'updraftplus'),
 			'input_backup_path_name_placeholder' => __('Bucket name', 'updraftplus'),
 			'input_backup_path_title' => '<a target="_blank" href="https://help.backblaze.com/hc/en-us/articles/217666908-What-you-need-to-know-about-B2-Bucket-names">'.__('There are limits upon which path-names are valid.', 'updraftplus').' '.__('Spaces are not allowed.', 'updraftplus').'</a>',
 			'input_backup_path_some_path_placeholder' => __('some/path', 'updraftplus'),
@@ -851,5 +877,31 @@ class UpdraftPlus_Addons_RemoteStorage_backblaze extends UpdraftPlus_RemoteStora
 				$this->log("Unable to set object lock for file: ".$file->getName());
 			}
 		}
+	}
+
+	/**
+	 * Customize generated field data using legacy mapping values.
+	 *
+	 * Used by transform_template_properties_to_fields_structure()
+	 * to allow child classes to adjust the generated field structure
+	 * based on legacy data and field mapping requirements.
+	 *
+	 * @param array  $field               Field data.
+	 * @param array  $template_properties Template properties.
+	 * @param string $field_name          Field name.
+	 * @param array  $option              Field mapping option.
+	 *
+	 * @return array
+	 */
+	public function configure_field_from_legacy($field, $template_properties, $field_name, $option) {
+		$prefix = 'input_'.$option['template_property_input_mapping'].'_';
+
+		if (empty($field['tooltip']) && isset($template_properties[$prefix.'title'])) $field['tooltip'] = array('text' => $template_properties[$prefix.'title']);
+
+		if ('bucket_name' === $field_name) $field['label'] = $template_properties['input_backup_path_label'];
+		
+		if ('backup_path' === $field_name) $field = array();
+
+		return $field;
 	}
 }

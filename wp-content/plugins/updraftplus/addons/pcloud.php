@@ -23,6 +23,34 @@ class UpdraftPlus_Addons_RemoteStorage_pcloud extends UpdraftPlus_BackupModule {
 	private $client_id = '';
 
 	private $callback_url = '';
+	
+	/**
+	 * Input and option field mappings with default values and supported contexts.
+	 *
+	 * @var array
+	 */
+	protected $input_option_field_mappings = array(
+		'pclauth' => array(
+			'default_value' => '',
+			'contexts' => array('option'),
+		),
+		'pcllocation' => array(
+			'default_value' => '1',
+			'contexts' => array('option'),
+		),
+		'folderid' => array(
+			'default_value' => 0,
+			'contexts' => array('option'),
+		),
+		'uploadid' => array(
+			'default_value' => 0,
+			'contexts' => array('option'),
+		),
+		'folder' => array(
+			'default_value' => '',
+			'contexts' => array('option', 'input'),
+		),
+	);
 
 	/**
 	 * Constructor
@@ -45,21 +73,6 @@ class UpdraftPlus_Addons_RemoteStorage_pcloud extends UpdraftPlus_BackupModule {
 			'multi_storage',
 			'conditional_logic',
 			'manual_authentication',
-		);
-	}
-
-	/**
-	 * Default options
-	 *
-	 * @return Array
-	 */
-	public function get_default_options() {
-		return array(
-			'pclauth'     => '',
-			'pcllocation' => '1',
-			'folderid'    => 0,
-			'uploadid'    => 0,
-			'folder'      => ''
 		);
 	}
 
@@ -557,6 +570,8 @@ class UpdraftPlus_Addons_RemoteStorage_pcloud extends UpdraftPlus_BackupModule {
 			'deauthentication_link_text' => sprintf(__("Follow this link to remove these settings for %s.", 'updraftplus'), $updraftplus->backup_methods[$this->get_id()]),
 			'authentication_link_text' => wp_kses(sprintf(__("<strong>After</strong> you have saved your settings (by clicking 'Save Changes' below), then come back here and follow this link to complete authentication with %s.", 'updraftplus'), $updraftplus->backup_methods[$this->get_id()]), $this->allowed_html_for_content_sanitisation()),
 			'deauthentication_nonce' => wp_create_nonce($this->get_id().'_deauth_nonce'),
+			'input_folder_label' => __('Store at', 'updraftplus'),
+			'input_folder_prefix' => 'UpdraftPlus/',
 		);
 		return wp_parse_args($properties, $this->get_persistent_variables_and_methods());
 	}

@@ -82,8 +82,8 @@ class NinjaFirewall_mail {
 		 * In order to use Sodium, we must have WordPress >=5.2 or PHP >= 7.2.0.
 		 */
 		if (! empty( $unsubscribe ) ) {
-			require_once __DIR__ .'/email_sodium.php';
-			$unsubscribe = nfw_check_sodium();
+			require_once __DIR__ .'/class-email-sodium.php';
+			$unsubscribe = NinjaFirewall_emailsodium::check_sodium();
 
 			/**
 			 * Link will be valid for 12 hours.
@@ -109,7 +109,7 @@ class NinjaFirewall_mail {
 				* Must no be the admin email, because we can't remove it.
 				*/
 				if ( $to != $admin_email ) {
-					$link		= nfw_sodium_encrypt( $to, $expire, $unsubscribe );
+					$link		= NinjaFirewall_emailsodium::sodium_encrypt( $to, $expire, $unsubscribe );
 					$uri		= home_url('/') ."?nfw_stop_notification=$link";
 					$click	= "\n\n". sprintf(
 						/* Translators: unsubscribe link */

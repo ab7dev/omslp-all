@@ -343,7 +343,7 @@ class UpdraftPlus_Addon_Autobackup {
 		?>
 		<script id="updraft_admin_footer_insertintoform">
 		jQuery(function($) {
-			$('form.upgrade').append('<input type="hidden" name="updraft_autobackup" class="updraft_autobackup_go" value="<?php esc_attr_e($godef); ?>">');
+			$('form.upgrade').append('<input type="hidden" name="updraft_autobackup" class="updraft_autobackup_go" value="<?php echo esc_attr($godef); ?>">');
 			$('form.upgrade').append('<input type="hidden" name="updraft_autobackup_setdefault" class="updraft_autobackup_setdefault" value="yes">');
 			$('#updraft_autobackup').on('click', function() {
 				var doauto = $(this).attr('checked');
@@ -368,7 +368,9 @@ class UpdraftPlus_Addon_Autobackup {
 
 	public function admin_footer() {
 		if (!current_user_can('update_'.$this->internaltype)) return;
-		$creating = sprintf(__('Creating %s and database backup with UpdraftPlus...', 'updraftplus'), $this->type).' '.__('(logs can be found in the UpdraftPlus settings page as normal)...', 'updraftplus');
+		/* translators: %s: Represents the type of backup (e.g., plugins, themes, etc.) */
+		$creating = sprintf(__('Creating %s and database backup with UpdraftPlus...', 'updraftplus'), $this->type).' '.
+		__('(logs can be found in the UpdraftPlus settings page as normal)...', 'updraftplus');
 		$lastlog = __('Last log message', 'updraftplus').':';
 		
 		global $updraftplus;
@@ -451,7 +453,7 @@ class UpdraftPlus_Addon_Autobackup {
 	public function admin_action_do_core_upgrade() {
 		if (!isset($_POST['upgrade'])) return;
 		if (!empty($_REQUEST['updraftplus_noautobackup'])) return;
-		if (!current_user_can('update_core')) wp_die(esc_html__('You do not have sufficient permissions to update this site.'));
+		if (!current_user_can('update_core')) wp_die(esc_html__('You do not have sufficient permissions to update this site.', 'updraftplus'));
 		check_admin_referer('upgrade-core');
 
 		// It is important to not use (bool)false here, as that conflicts with using get_option() with a non-false default value
@@ -1153,6 +1155,7 @@ ENDHERE;
 			?>
 				<h2>
 				<?php
+					/* translators: %s: Represents the name of the backup plugin (UpdraftPlus). */
 					echo sprintf(esc_html__('%s Automatic Backups', 'updraftplus'), 'UpdraftPlus');
 				?>
 				</h2>

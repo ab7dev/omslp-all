@@ -437,7 +437,7 @@ class HTTP_Request2_CookieJar implements Serializable
      */
     public function unserialize($serialized)
     {
-        $this->__unserialize(unserialize($serialized));
+        $this->__unserialize(UpdraftPlus::unserialize($serialized));
     }
 
     /**

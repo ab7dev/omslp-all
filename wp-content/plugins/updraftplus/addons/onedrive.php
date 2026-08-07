@@ -64,6 +64,35 @@ class UpdraftPlus_Addons_RemoteStorage_onedrive extends UpdraftPlus_RemoteStorag
 	private $onedrive_folder;
 
 	/**
+	 * Input and option field mappings with default values and supported contexts.
+	 *
+	 * @var array
+	 */
+	protected $input_option_field_mappings = array(
+		'clientid' => array(
+			'default_value' => '',
+			'contexts' => array('option'),
+		),
+		'secret' => array(
+			'default_value' => '',
+			'contexts' => array('option'),
+		),
+		'url' => array(
+			'default_value' => '',
+			'contexts' => array('option'),
+		),
+		'folder' => array(
+			'default_value' => '',
+			'contexts' => array('option', 'input'),
+		),
+		'endpoint_tld' => array(
+			'default_value' => 'com',
+			'template_property_input_mapping' => 'endpoint',
+			'contexts' => array('option', 'input'),
+		),
+	);
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
@@ -1059,16 +1088,6 @@ class UpdraftPlus_Addons_RemoteStorage_onedrive extends UpdraftPlus_RemoteStorag
 		return array('multi_options', 'config_templates', 'multi_storage', 'multi_delete', 'conditional_logic', 'manual_authentication');
 	}
 
-	public function get_default_options() {
-		return array(
-			'clientid' => '',
-			'secret' => '',
-			'url' => '',
-			'folder' => '',
-			'endpoint_tld' => 'com',
-		);
-	}
-
 	/**
 	 * Over-rides the parent to allow this method to output extra information about using the correct account for OAuth authentication
 	 *
@@ -1339,6 +1358,7 @@ class UpdraftPlus_Addons_RemoteStorage_onedrive extends UpdraftPlus_RemoteStorag
 			'input_client_secret_label' => __('OneDrive', 'updraftplus').' '.__('Client Secret', 'updraftplus'),
 			'input_client_secret_type' => apply_filters('updraftplus_admin_secret_field_type', 'password'),
 			'input_folder_label' => 'OneDrive '.__('folder', 'updraftplus'),
+			'input_folder_placeholder' => __('Enter your folder name', 'updraftplus'),
 			'input_folder_title' => sprintf(__('Enter the path of the %s folder you wish to use here.', 'updraftplus'), 'OneDrive').' '.__('If the folder does not already exist, then it will be created.').' '.sprintf(__('e.g. %s', 'updraftplus'), 'MyBackups/WorkWebsite.').' '.sprintf(__('If you leave it blank, then the backup will be placed in the root of your %s', 'updraftplus'), 'OneDrive account').' '.sprintf(__('N.B. %s is not case-sensitive.', 'updraftplus'), 'OneDrive'),
 			'input_endpoint_label' => __('Account type', 'updraftplus'),
 			'input_endpoint_option_labels' => array(
@@ -1389,6 +1409,28 @@ class UpdraftPlus_Addons_RemoteStorage_onedrive extends UpdraftPlus_RemoteStorag
 			'refresh_token',
 			'access_token_timeout',
 		);
+	}
+	
+	/**
+	 * Customize generated field data using legacy mapping values.
+	 *
+	 * Used by transform_template_properties_to_fields_structure()
+	 * to allow child classes to adjust the generated field structure
+	 * based on legacy data and field mapping requirements.
+	 *
+	 * @param array  $field               Field data.
+	 * @param array  $template_properties Template properties.
+	 * @param string $field_name          Field name.
+	 * @param array  $option              Field mapping option.
+	 *
+	 * @return array
+	 */
+	public function configure_field_from_legacy($field, $template_properties, $field_name, $option) {
+		$prefix = 'input_'.$option['template_property_input_mapping'].'_';
+
+		if (empty($field['tooltip']) && isset($template_properties[$prefix.'title'])) $field['tooltip'] = array('text' => $template_properties[$prefix.'title']);
+
+		return $field;
 	}
 }
 
