@@ -36,6 +36,39 @@ class UpdraftPlus_Addons_RemoteStorage_googlecloud extends UpdraftPlus_RemoteSto
 	// This can get over-ridden by a user-defined constant
 	private $callback_url = 'https://auth.updraftplus.com/auth/googlecloud';
 
+	/**
+	 * Input and option field mappings with default values and supported contexts.
+	 *
+	 * @var array
+	 */
+	protected $input_option_field_mappings = array(
+		'project_id' => array(
+			'default_value' => '',
+			'contexts' => array('option', 'input'),
+		),
+		'bucket_path' => array(
+			'default_value' => '',
+			'template_property_input_mapping' => 'bucket',
+			'contexts' => array('option', 'input'),
+		),
+		'storage_class' => array(
+			'default_value' => '',
+			'contexts' => array('option', 'input'),
+		),
+		'bucket_location' => array(
+			'default_value' => '',
+			'contexts' => array('option', 'input'),
+		),
+		'clientid' => array(
+			'default_value' => '',
+			'contexts' => array('option'),
+		),
+		'secret' => array(
+			'default_value' => '',
+			'contexts' => array('option'),
+		),
+	);
+
 	public function __construct() {
 		// 3rd parameter: chunking? 4th: Test button?
 
@@ -80,22 +113,6 @@ class UpdraftPlus_Addons_RemoteStorage_googlecloud extends UpdraftPlus_RemoteSto
 	public function get_supported_features() {
 		// This options format is handled via only accessing options via $this->get_options()
 		return array('multi_options', 'config_templates', 'multi_storage', 'conditional_logic');
-	}
-
-	/**
-	 * Retrieve default options for this remote storage module.
-	 *
-	 * @return Array - an array of options
-	 */
-	public function get_default_options() {
-		return array(
-			'clientid' => '',
-			'secret' => '',
-			'project_id' => '',
-			'bucket_path' => '',
-			'storage_class' => '',
-			'bucket_location' => '',
-		);
 	}
 
 	/**
@@ -1299,20 +1316,24 @@ class UpdraftPlus_Addons_RemoteStorage_googlecloud extends UpdraftPlus_RemoteSto
 			'input_master_client_secret_label' => __('Google Cloud', 'updraftplus').' '.__('Client Secret', 'updraftplus'),
 			'input_master_client_secret_type' => apply_filters('updraftplus_admin_secret_field_type', 'password'),
 			'input_project_id_label' => 'Google Cloud '.__('Project ID', 'updraftplus'),
+			'input_project_id_placeholder' => __('Paste your project ID here', 'updraftplus'),
 			'input_project_id_title1' => sprintf(__('Enter the ID of the %s project you wish to use here.', 'updraftplus'), 'Google Cloud'),
 			'input_project_id_title2' => __('N.B. This is only needed if you have not already created the bucket, and you wish UpdraftPlus to create it for you.', 'updraftplus').' '.__('Otherwise, you can leave it blank.', 'updraftplus'),
 			'input_project_id_more_info_link_text' => __('Go here for more information.', 'updraftplus'),
 			'input_bucket_label' => 'Google Cloud '.__('Bucket', 'updraftplus'),
 			'input_bucket_label2' => sprintf(__('You must use a bucket name that is unique, for all %s users.', 'updraftplus'), __('Google Cloud', 'updraftplus')),
+			'input_bucket_placeholder' => __('Enter your bucket name', 'updraftplus'),
 			'input_bucket_title' => sprintf(__('Enter the name of the %s bucket you wish to use here.', 'updraftplus'), 'Google Cloud').' '.__('Bucket names have to be globally unique.', 'updraftplus').' '.__('If the bucket does not already exist, then it will be created.').' '.sprintf(__('e.g. %s', 'updraftplus'), 'mybackups/workwebsite.'),
 			'input_bucket_guidelines_link_text' => __("See Google's guidelines on bucket naming by following this link.", 'updraftplus'),
 			'input_storage_class_label' => __('Storage class', 'updraftplus'),
 			'input_storage_class_link_title' => __('Read more about storage classes', 'updraftplus'),
 			'read_more_label' => __('(Read more)', 'updraftplus'),
 			'input_storage_class_title' => __('This setting applies only when a new bucket is being created.', 'updraftplus').' '.__('Note that Google do not support every storage class in every location - you should read their documentation to learn about current availability.', 'updraftplus'),
+			'input_storage_class_option_labels' => $this->storage_classes,
 			'input_bucket_location_label' => __('Bucket location', 'updraftplus'),
 			'input_bucket_location_link_title' => __('Read more about bucket locations', 'updraftplus'),
 			'input_bucket_location_title' => __('This setting applies only when a new bucket is being created.', 'updraftplus'),
+			'input_bucket_location_option_labels' => $this->bucket_locations,
 			'authentication_label' => __('Authenticate with Google', 'updraftplus'),
 			'authentication_label2' => wp_kses(sprintf(__("<strong>After</strong> you have saved your settings (by clicking 'Save Changes' below), then come back here once and follow this link to complete authentication with %s.", 'updraftplus'), $updraftplus->backup_methods[$this->get_id()]), $this->allowed_html_for_content_sanitisation()),
 			'authentication_link_text' => sprintf(__('Sign in with %s', 'updraftplus'), 'Google'),
@@ -1369,6 +1390,32 @@ class UpdraftPlus_Addons_RemoteStorage_googlecloud extends UpdraftPlus_RemoteSto
 		$id = $this->get_id();
 
 		return '<p>'. $text .'</p><br><a data-pretext="'.$text.'" class="button-ud-google updraft_authlink" href="'.UpdraftPlus_Options::admin_page_url().'?&action=updraftmethod-'.$id.'-auth&page=updraftplus&updraftplus_'.$id.'auth=doit&nonce='.wp_create_nonce('storage_auth_nonce').'&updraftplus_instance='.$instance_id.'" data-instance_id="'.$instance_id.'" data-remote_method="'.$id.'">'.sprintf(__('Sign in with %s', 'updraftplus'), 'Google').'</a>';
+	}
+	
+	/**
+	 * Customize generated field data using legacy mapping values.
+	 *
+	 * Used by transform_template_properties_to_fields_structure()
+	 * to allow child classes to adjust the generated field structure
+	 * based on legacy data and field mapping requirements.
+	 *
+	 * @param array  $field               Field data.
+	 * @param array  $template_properties Template properties.
+	 * @param string $field_name          Field name.
+	 * @param array  $option              Field mapping option.
+	 *
+	 * @return array
+	 */
+	public function configure_field_from_legacy($field, $template_properties, $field_name, $option) {
+		$prefix = 'input_'.$option['template_property_input_mapping'].'_';
+
+		if (empty($field['tooltip']) && isset($template_properties[$prefix.'title'])) $field['tooltip'] = array('text' => $template_properties[$prefix.'title']);
+
+		if ('project_id' === $field_name) {
+			$field['tooltip'] = array('text' => $template_properties[$prefix.'title1'].' '.$template_properties[$prefix.'title2']);
+		}
+
+		return $field;
 	}
 }
 

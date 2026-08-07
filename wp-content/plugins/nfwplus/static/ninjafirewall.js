@@ -680,6 +680,73 @@ function ac_radio_toogle( on_off, rbutton ) {
 }
 
 
+function nfwjs_upgrade_plugin( plugin, version, nonce ) {
+
+	if ( typeof plugin === 'undefined' || typeof version === 'undefined' ||
+		typeof nonce === 'undefined') {
+
+		alert( nfwi18n.missing_parameters );
+		return false;
+	}
+	nfwjs_upgrade_plugin_progress( 0 );
+
+	var data = {
+		'action': 'nfw_pluginupgrade',
+		'plugin': plugin,
+		'version': version,
+		'nonce': nonce
+	}
+
+	jQuery.ajax( {
+		type: 'POST',
+		url: ajaxurl,
+		data: data,
+		dataType: 'json',
+		success: function( response ) {
+
+			if (typeof response === 'undefined') {
+				alert( nfwi18n.unknown_error );
+				nfwjs_upgrade_plugin_progress( 1 );
+				return false;
+			}
+
+			if ( response.status == 'error') {
+				alert( response.message );
+				nfwjs_upgrade_plugin_progress( 1 );
+
+			} else if ( response.status == 'success') {
+				alert( response.message );
+				location.reload();
+
+			} else {
+				alert( nfwi18n.unknown_error );
+				nfwjs_upgrade_plugin_progress( 1 );
+			}
+			return false;
+		},
+
+		error: function(xhr, status, error) {
+			alert('Error: ' + error );
+			nfwjs_upgrade_plugin_progress( 1 );
+			return false;
+		},
+	} );
+
+	return false;
+}
+
+function nfwjs_upgrade_plugin_progress( show ) {
+
+	if ( show == 1 ) {
+		jQuery('#nf-progress-id').show();
+		jQuery('#nf-progress-gif').hide();
+	} else {
+		jQuery('#nf-progress-id').hide();
+		jQuery('#nf-progress-gif').show();
+	}
+
+}
+
 // =====================================================================
 // Login Protection.
 

@@ -18,15 +18,20 @@ $nscan_options = get_option( 'nscan_options' );
 
 $message = __('NinjaScanner is running in the background.', 'ninjascanner') . ' ' .
 	__('Meanwhile, you can leave this page and keep working on your blog as usual, or even log out of the WordPress dashboard.', 'ninjascanner');
+
 if (! empty( $nscan_options['admin_email'] ) ) {
-	$message .=  ' ' . sprintf( __('A report will be sent to %s as soon as the scan has finished.', 'ninjascanner' ), '<code>'. htmlspecialchars( $nscan_options['admin_email'] ) .'</code>' );
+	$message .=  ' ' . sprintf(
+		__('A report will be sent to %s as soon as the scan has finished.', 'ninjascanner' ),
+		esc_html( $nscan_options['admin_email'] )
+	);
 }
 
 $nscan_key = wp_create_nonce( 'nscan_on_demand_nonce' );
 
 $lock_status = json_decode( nscan_is_scan_running(), true );
 if ( $lock_status['status'] == 'success' ) {
-	echo '<div class="notice-info notice is-dismissible" id="summary-running"><p>'. $message .'</p></div>';
+	echo '<div class="notice-info notice is-dismissible" id="summary-running"><p>'.
+			esc_html( $message ) .'</p></div>';
 
 } else {
 	// If a scan isn't running, remove any lock and clean up temporary files
@@ -34,6 +39,8 @@ if ( $lock_status['status'] == 'success' ) {
 }
 
 // View scan report
+
+// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 if (! empty( $_REQUEST['view-report'] ) ) {
 	$viewing_report = 1;
 	$report = array();
@@ -41,13 +48,14 @@ if (! empty( $_REQUEST['view-report'] ) ) {
 	$report = html_report();
 	if (! empty( $report['error'] ) ) {
 		$message = $report['error'];
-		echo '<div class="error is-dismissible notice"><p>'. $report['error'] .'</p></div>';
+		echo '<div class="error is-dismissible notice"><p>'. esc_html( $report['error'] ) .'</p></div>';
 	}
 }
 
 // Used to display running messages while scanning (e.g., scan errors etc):
 echo '<div class="error notice" style="display:none" id="summary-message"><p></p></div>';
-echo '<div class="notice-info notice is-dismissible" style="display:none" id="summary-running"><p>'. $message .'</p></div>';
+echo '<div class="notice-info notice is-dismissible" style="display:none" id="summary-running"><p>'.
+		esc_html( $message ) .'</p></div>';
 
 echo nscan_display_tabs( 1 );
 

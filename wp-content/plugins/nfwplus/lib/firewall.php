@@ -94,19 +94,15 @@ if (! is_dir($nfw_['log_dir']) ) {
 }
 
 /**
- * Select whether we want to use PHP or NF (default since v4.8.1) sessions.
+ * Start a session.
  */
-if ( is_file( "{$nfw_['log_dir']}/phpsession" ) ) {
-	require_once __DIR__ .'/class-php-session.php';
-} else {
-	if (! defined('NFWSESSION_DIR') ) {
-		/**
-		 * NFWSESSION_DIR can be defined in the .htninja.
-		 */
-		define('NFWSESSION_DIR', "{$nfw_['log_dir']}/session" );
-	}
-	require_once __DIR__ .'/class-nfw-session.php';
+if (! defined('NFWSESSION_DIR') ) {
+	/**
+	 * NFWSESSION_DIR can be defined in the .htninja.
+	 */
+	define('NFWSESSION_DIR', "{$nfw_['log_dir']}/session" );
 }
+require_once __DIR__ .'/class-session.php';
 
 // Get/set PID
 if ( is_file( "{$nfw_['log_dir']}/cache/.pid" ) ) {
@@ -149,10 +145,12 @@ if ( $ret !== true || empty( $nfw_['nfw_options'] ) ) {
  */
 NinjaFirewall_IP::check_ip( $nfw_['nfw_options'] );
 
-// Centralized logging
+/**
+ * Centralized logging.
+ */
 if (! empty($nfw_['nfw_options']['clogs_pubkey']) && isset($_POST['clogs_req']) ) {
-	include_once 'fw_centlog.php';
-	fw_centlog();
+	include_once __DIR__ .'/class-centralised-logging.php';
+	NinjaFirewall_centralisedlogging::run( $nfw_ );
 	exit;
 }
 
@@ -660,12 +658,6 @@ nfw_check_request( $nfw_['nfw_rules'], $nfw_['nfw_options'], $ac_wl_input, $ac_b
 // Sanitise requests/variables if needed :
 if (! empty($nfw_['nfw_options']['get_sanitise']) && ! empty($_GET) ){
 	$_GET = nfw_sanitise( $_GET, 1, 'GET', $ac_wl_input );
-}
-if (! empty($nfw_['nfw_options']['post_sanitise']) && ! empty($_POST) ){
-	$_POST = nfw_sanitise( $_POST, 1, 'POST', $ac_wl_input );
-}
-if (! empty($nfw_['nfw_options']['request_sanitise']) && ! empty($_REQUEST) ){
-	$_REQUEST = nfw_sanitise( $_REQUEST, 1, 'REQUEST');
 }
 if (! empty($nfw_['nfw_options']['cookies_sanitise']) && ! empty($_COOKIE) ) {
 	$_COOKIE = nfw_sanitise( $_COOKIE, 3, 'COOKIE', $ac_wl_input );
@@ -2760,9 +2752,11 @@ function nfw_check_auth( $auth_name, $auth_pass, $auth_msgtxt, $bf_rand, $b64, $
 	}
 
 	if ( $bf_type == 0 ) {
-		// Password protection:
+		// Password protection
 		if (! empty($_REQUEST['u']) && ! empty($_REQUEST['p']) ) {
-			if ( $_REQUEST['u'] === $auth_name && sha1($_REQUEST['p']) === $auth_pass ) {
+			if ( $_REQUEST['u'] === $auth_name &&
+				hash_equals( $auth_pass, sha1( $_REQUEST['p'] ) ) ) {
+
 				NinjaFirewall_session::write( ['nfw_bfd' => $bf_rand ] );
 				return;
 			}

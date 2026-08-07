@@ -5,14 +5,14 @@ Plugin URI: https://nintechnet.com/ninjascanner/
 Description: A lightweight, fast and powerful virus scanner for WordPress.
 Author: The Ninja Technologies Network
 Author URI: https://nintechnet.com/
-Version: 3.3
+Version: 3.3.1
 License: GPLv3 or later
 Network: true
 Text Domain: ninjascanner
 Domain Path: /languages
 */
 
-define('NSCAN_VERSION', '3.3');
+define('NSCAN_VERSION', '3.3.1');
 
 /*
  +=====================================================================+
@@ -31,7 +31,7 @@ if (! defined('ABSPATH') ) {
 	die('Forbidden');
 }
 
-// ===================================================================== 2023-06-07
+// =====================================================================
 // Both constants are used by NinjaFirewall:
 define('NSCAN_NAME', 'NinjaScanner');
 define('NSCAN_SLUG', 'ninjascanner');
@@ -39,7 +39,7 @@ define('NSCAN_SLUG', 'ninjascanner');
 // Constants & variables
 require_once __DIR__ .'/lib/constants.php';
 
-// ===================================================================== 2023-06-07
+// =====================================================================
 // Load (force) our translation files.
 
 $ns_locale = ['fr_FR'];
@@ -53,7 +53,7 @@ if ( in_array( $this_locale, $ns_locale ) ) {
 		);
 	}
 }
-// ===================================================================== 2023-06-07
+// =====================================================================
 // Helpers
 require __DIR__ .'/lib/utils.php';
 // AJAX hooks
@@ -61,19 +61,19 @@ require __DIR__ .'/lib/ajax_hooks.php';
 // User interface functions
 require __DIR__ .'/lib/ui.php';
 
-// ===================================================================== 2023-06-07
+// =====================================================================
 // Activation: make sure the blog meets the requirements.
 
 function nscan_activate() {
 
 	if (! defined('WP_CLI') && ! current_user_can('activate_plugins') ) {
-		exit( esc_html__('Your are not allowed to activate or deactivate '.
+		wp_die( esc_html__('Your are not allowed to activate or deactivate '.
 			'plugins.', 'ninjascanner') );
 	}
 
 	global $wp_version;
 	if ( version_compare( $wp_version, '4.7.0', '<') ) {
-		exit( sprintf(
+		wp_die( sprintf(
 			esc_html__('NinjaScanner requires WordPress %s or greater but '.
 			'your current version is %s.', 'ninjascanner'),
 			'4.7.0',
@@ -82,7 +82,7 @@ function nscan_activate() {
 	}
 
 	if ( version_compare( PHP_VERSION, '7.1', '<') ) {
-		exit( sprintf(
+		wp_die( sprintf(
 			esc_html__('NinjaScanner requires PHP %s or greater but your '.
 			'current version is %s.', 'ninjascanner'),
 			'7.1',
@@ -91,7 +91,7 @@ function nscan_activate() {
 	}
 
 	if ( PATH_SEPARATOR == ';') {
-		exit( esc_html__('NinjaScanner is not compatible with Microsoft '.
+		wp_die( esc_html__('NinjaScanner is not compatible with Microsoft '.
 		'Windows.', 'ninjascanner') );
 	}
 
@@ -119,7 +119,7 @@ function nscan_activate() {
 
 register_activation_hook( __FILE__, 'nscan_activate');
 
-// ===================================================================== 2023-06-07
+// =====================================================================
 // Deactivation: stop any cron.
 
 function nscan_deactivate() {
@@ -137,13 +137,13 @@ function nscan_deactivate() {
 
 register_deactivation_hook( __FILE__, 'nscan_deactivate');
 
-// ===================================================================== 2023-06-07
+// =====================================================================
 // Run the garbage collector to clean-up the cached folder.
 
 require_once __DIR__ .'/lib/gc.php';
 add_action('nscan_garbage_collector', 'nscan_gc');
 
-// ===================================================================== 2023-06-07
+// =====================================================================
 // View the file or compare it to the original one. Applies to WordPress
 // core files or to themes/plugins available in the wordpress.org repo.
 // Additionally, adjust options if we just update the plugin to a newer
@@ -176,7 +176,7 @@ function nscan_init() {
 			) );
 		}
 		$file = base64_decode( $_GET['file'] );
-		ns_win_or_linux( $file );
+		$file = nscan_validate_file_path( $file );
 
 		// File must exist:
 		if (! file_exists( $file ) ) {
@@ -239,7 +239,7 @@ function nscan_init() {
 
 add_action('admin_init', 'nscan_init');
 
-// ===================================================================== 2023-06-07
+// =====================================================================
 // Display settings link in the "Plugins" page.
 
 function nscan_settings_link( $links ) {
@@ -283,14 +283,14 @@ if ( is_multisite() ) {
 	);
 }
 
-// ===================================================================== 2023-06-07
+// =====================================================================
 // WP CLI commands.
 
 if ( defined('WP_CLI') && WP_CLI ) {
 	require_once __DIR__ .'/lib/cli.php';
 }
 
-// ===================================================================== 2023-06-07
+// =====================================================================
 // Create NinjaScanner menu. It can be, however, integrated into
 // NinjaFirewall own menu too.
 
@@ -333,7 +333,7 @@ if (! is_multisite() )  {
 	add_action('network_admin_menu', 'nscan_admin_menu', 11 );
 }
 
-// ===================================================================== 2023-06-07
+// =====================================================================
 
 function nscan_insert_jscss() {
 
@@ -418,7 +418,7 @@ function nscan_insert_jscss() {
 
 add_action('admin_footer', 'nscan_insert_jscss');
 
-// ===================================================================== 2023-06-07
+// =====================================================================
 // Load AJAX code depending on the requested page and the scan status.
 
 if ( empty( $_GET['page'] ) || $_GET['page'] != 'NinjaScanner') {
@@ -434,7 +434,7 @@ function nscan_status_ajax_all() {
 	require_once 'lib/ajax_all.php';
 }
 
-// ===================================================================== 2023-06-07
+// =====================================================================
 // Run scheduled scan (WP-Cron).
 
 function nscan_sched_cron() {

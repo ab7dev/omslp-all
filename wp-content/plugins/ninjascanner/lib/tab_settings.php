@@ -49,36 +49,28 @@ if (! empty( $_POST ) && empty( $nscan_is_running ) ) {
 			$warning = 1;
 			$message = $ret;
 		} else {
-			$message = __( "The cache was cleared.", "ninjascanner" );
+			$message = __('The cache was cleared.', 'ninjascanner');
 		}
 
 	// Restore default settings?
 	} elseif (! empty( $_POST['restore-settings'] ) ) {
 		nscan_restore_settings( $nscan_options );
-		$message = __( "Default settings were successfully restored.", "ninjascanner" );
-
-	// Diagnostics:
-	} elseif (! empty($_POST['diagnostics'] ) ) {
-		$res = nscan_run_diagnostics();
-		if (! empty( $res['error'] ) ) {
-			$warning = 1;
-		}
-		$message = $res['message'];
+		$message = __('Default settings were successfully restored.', 'ninjascanner');
 
 	//Save settings:
 	} else {
 		nscan_save_settings( $nscan_options );
-		$message = __( "Your settings were successfully saved.", "ninjascanner" );
+		$message = __('Your settings were successfully saved.', 'ninjascanner');
 	}
 	// Refresh options after changes:
-	$nscan_options = get_option( 'nscan_options' );
+	$nscan_options = get_option('nscan_options');
 }
 
 if (! empty( $message ) ) {
 	if ( isset( $warning ) ) {
-		echo '<div class="notice-warning notice is-dismissible"><p>' . $message . '</p></div>';
+		echo '<div class="notice-warning notice is-dismissible"><p>'. esc_html( $message ) .'</p></div>';
 	} else {
-		echo '<div class="notice-success notice is-dismissible"><p>' . $message . '</p></div>';
+		echo '<div class="notice-success notice is-dismissible"><p>'. esc_html( $message ) .'</p></div>';
 	}
 }
 

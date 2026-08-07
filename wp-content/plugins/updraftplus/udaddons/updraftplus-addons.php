@@ -343,7 +343,9 @@ class UpdraftPlusAddons2 {
 			$subscription_status = apply_filters('udmupdater_subscription_active', isset($oval->update->extraProperties[$subscription_activekey]) ? $oval->update->extraProperties[$subscription_activekey] : false);
 			if (empty($subscription_status)) {
 				if (preg_match('/(^|,)soonpartial_(\d+)_(\d+)($|,)/', $oval->update->extraProperties[$updateskey], $matches)) {
-					$this->admin_notices['updatesexpiringsoon'] = sprintf(__('Your paid access to UpdraftPlus updates for %s of the %s add-ons on this site will soon expire.', 'updraftplus'), $matches[2], $matches[3]).' <a href="https://updraftplus.com/renewing-updraftplus-purchase/">'.__('To retain your access, and maintain access to updates (including future features and compatibility with future WordPress releases) and support, please renew.', 'updraftplus').'</a>'.$dismiss;
+					/* translators: 1: Number of add-ons whose updates are expiring soon, 2: Total number of add-ons on this site */
+					$this->admin_notices['updatesexpiringsoon'] = sprintf(__('Your paid access to UpdraftPlus updates for %1$s of the %2$s add-ons on this site will soon expire.', 'updraftplus'), $matches[2], $matches[3]);
+					$this->admin_notices['updatesexpiringsoon'] .= ' <a href="https://updraftplus.com/renewing-updraftplus-purchase/">'.__('To retain your access, and maintain access to updates (including future features and compatibility with future WordPress releases) and support, please renew.', 'updraftplus').'</a>'.$dismiss;
 				} elseif (preg_match('/(^|,)soon($|,)/', $oval->update->extraProperties[$updateskey])) {
 					$message = __('Your paid access to UpdraftPlus updates for this site will soon expire.', 'updraftplus').' <a href="https://updraftplus.com/renewing-updraftplus-purchase/">'.__('To retain your access, and maintain access to updates (including future features and compatibility with future WordPress releases) and support, please renew.', 'updraftplus').'</a>';
 					if ($updraftplus->have_addons > 14 && !empty($meta_info['indirect'])) {

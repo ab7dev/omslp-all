@@ -168,20 +168,27 @@ class NinjaFirewall_log {
 			$REMOTE_ADDR    = '0.0.0.0';
 			$loglevel       = NFWLOG_INFO;
 		} else {
-			$SCRIPT_NAME    = $_SERVER['SCRIPT_NAME'];
+			$SCRIPT_NAME    = isset( $_SERVER['REQUEST_URI'] ) ?  $_SERVER['REQUEST_URI'] : $_SERVER['SCRIPT_NAME'];
 			$REQUEST_METHOD = $_SERVER['REQUEST_METHOD'];
 			$REMOTE_ADDR    = NFW_REMOTE_ADDR;
 		}
 
 		$elapse = nfw_fc_metrics('stop');
 
-		@ file_put_contents( $log_file_ext,
-			$tmp . '[' . time() . '] ' . "[$elapse] " .
+		$log_line = $tmp . '[' . time() . '] ' . "[$elapse] " .
 			"[{$_SERVER['SERVER_NAME']}] [#$incidentID] [$ruleid] [$loglevel] " .
 			'[' . NinjaFirewall_IP::anonymize_ip( $REMOTE_ADDR, $nfw_options ) . '] ' .
-			"[$http_ret_code] [$REQUEST_METHOD] [$SCRIPT_NAME] [$loginfo] [$encoding]\n",
-			FILE_APPEND | LOCK_EX
-		);
+			"[$http_ret_code] [$REQUEST_METHOD] [$SCRIPT_NAME] [$loginfo] [$encoding]";
+
+		@ file_put_contents( $log_file_ext, "$log_line\n", FILE_APPEND | LOCK_EX );
+
+		/**
+		 * `nfw_custom_user_log()` can be defined in the .htninja configuration file
+		 * to allow the user to retrieve the log line.
+		 */
+		if ( function_exists('nfw_custom_user_log') ) {
+			nfw_custom_user_log( $log_line );
+		}
 
 		/**
 		 * Syslog logging.

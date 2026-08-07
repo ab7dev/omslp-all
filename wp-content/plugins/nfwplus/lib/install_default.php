@@ -41,8 +41,6 @@ function nfw_load_default_conf() {
 		'upload_maxsize'	=> 0, // Defined below since v3.5.4
 		'get_sanitise'		=> 0,
 		'post_scan'			=> 1,
-		'post_sanitise'	=> 0,
-		'request_sanitise'=> 0,
 		'cookies_scan'		=> 1,
 		'cookies_sanitise'=> 0,
 		'ua_scan'			=> 1,

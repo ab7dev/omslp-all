@@ -250,6 +250,13 @@ class NinjaFirewall_ImpExp {
 		$nfw_options['lic_exp'] = $lic_exp;
 
 		/**
+		 * Make sure at least to whitelist the admin (WP+ Edition only).
+		 */
+		if ( empty( $nfw_options['ac_roles'] ) ) {
+			$nfw_options['ac_roles'] = '|administrator|'; // Keep the trailing vertical bar
+		}
+
+		/**
 		 * Save options.
 		 */
 		nfw_update_option('nfw_options', $nfw_options );

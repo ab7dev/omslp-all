@@ -262,12 +262,12 @@ function nscan_log_debug( $string, $exit = true ) {
 	nscan_log( $string, 8, $exit );
 }
 
-// ===================================================================== 2023-06-07
+// =====================================================================
 // Generate a nonce key.
 
 function nscan_generate_key() {
 
-	$key = bin2hex( openssl_random_pseudo_bytes(40) );
+	$key = bin2hex( random_bytes(40) );
 	set_transient(
 		'nscan_ajax_start',
 		hash('sha256', $key ),
@@ -301,12 +301,43 @@ function nscan_check_nonce() {
 
 function ns_win_or_linux( $file ) {
 
-	if (! preg_match( '`^(?i:[a-z]:|/)`', $file ) || preg_match( '`\.\.\B`', $file ) ) {
+	if (! preg_match('`^(?i:[a-z]:|/)`', $file ) || preg_match( '`\.\.\B`', $file ) ) {
 		wp_die( sprintf(
-			__('File does not seem valid: %s', 'ninjascanner' ),
-			htmlentities( $file )
+			esc_html__('File does not seem valid: %s', 'ninjascanner'),
+			esc_html( $file )
 		) );
 	}
+}
+
+// =====================================================================
+// Ensure $file is a readable/writable file under the WordPress install.
+
+function nscan_validate_file_path( $file, $must_exist = true ) {
+
+	$file = wp_normalize_path( $file );
+	ns_win_or_linux( $file );
+	$real = realpath( $file );
+	if ( $real === false ) {
+		if ( $must_exist ) {
+			wp_die( esc_html__('File does not exist.', 'ninjascanner') );
+		}
+		return false;
+	}
+	$roots = array_filter( [
+		realpath( ABSPATH ),
+		! empty( $_SERVER['DOCUMENT_ROOT'] ) ? realpath( $_SERVER['DOCUMENT_ROOT'] ) : null,
+	] );
+	$allowed = false;
+	foreach ( $roots as $root ) {
+		if ( strpos( $real, trailingslashit( $root ) ) === 0 || $real === $root ) {
+			$allowed = true;
+			break;
+		}
+	}
+	if ( ! $allowed ) {
+		wp_die( esc_html__('File is outside the allowed site directories.', 'ninjascanner') );
+	}
+	return $real;
 }
 
 // =====================================================================

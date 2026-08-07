@@ -80,6 +80,7 @@ class UpdraftPlus_Addon_S3_Enhanced {
 			'input_server_encryption_aria' => __('Read more about server-side encryption', 'updraftplus'),
 			'input_server_encryption_text' => __('(Read more)', 'updraftplus'),
 			'input_server_encryption_title' => __("Check this box to use Amazon's server-side encryption", 'updraftplus'),
+			'input_server_encryption_type' => 'checkbox',
 			'updraftplus_current_clean_url' => esc_url(UpdraftPlus::get_current_clean_url()),
 			'updraftplus_premium_url' => $updraftplus->get_url('premium'),
 		);

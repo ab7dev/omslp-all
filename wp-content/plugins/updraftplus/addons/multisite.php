@@ -320,7 +320,7 @@ if (is_multisite()) {
 		 */
 		public static function options_printpage() {
 			if (!self::user_can_manage()) {
-				wp_die(esc_html__('You do not have sufficient permissions to access this page.'));
+				wp_die(esc_html__('You do not have sufficient permissions to access this page.')); //phpcs:ignore WordPress.WP.I18n.MissingArgDomain -- Use the default/WP text domain because this string exists in the WP core.
 			}
 
 			if (isset($_POST['action']) && 'update' == $_POST['action'] && isset($_POST['updraft_interval'])) {
@@ -334,7 +334,7 @@ if (is_multisite()) {
 
 		public static function mass_options_update($new_options) {
 
-			if (!self::user_can_manage()) wp_die(esc_html__('You do not have permission to access this page.'));
+			if (!self::user_can_manage()) wp_die(esc_html__('You do not have permission to access this page.')); //phpcs:ignore WordPress.WP.I18n.MissingArgDomain -- Use the default/WP text domain because this string exists in the WP core.
 
 			global $updraftplus, $updraftplus_admin;
 
@@ -774,7 +774,7 @@ if (is_multisite()) {
 			
 			if ($added_header) {
 				$info['addui'] .= '</select>';
-				if (!empty($other_entities)) $info['addui'] .= '<em>'.__('N.B. this option only affects the restoration of the database and uploads - other file entities (such as plugins) in WordPress are shared by the whole network.').'</em> <a href="https://teamupdraft.com/documentation/updraftplus/topics/restoration/faqs/how-do-i-restore-a-single-sub-site-on-a-multisite-network/" target="_blank">'.__('Read more...', 'updraftplus').'</a>';
+				if (!empty($other_entities)) $info['addui'] .= '<em>'.__('N.B. this option only affects the restoration of the database and uploads - other file entities (such as plugins) in WordPress are shared by the whole network.', 'updraftplus').'</em> <a href="https://teamupdraft.com/documentation/updraftplus/topics/restoration/faqs/how-do-i-restore-a-single-sub-site-on-a-multisite-network/" target="_blank">'.__('Read more...', 'updraftplus').'</a>';
 			}
 			// return $info;
 		}

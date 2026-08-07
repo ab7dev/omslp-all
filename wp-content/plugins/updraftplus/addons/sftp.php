@@ -117,6 +117,49 @@ class UpdraftPlus_Addons_RemoteStorage_sftp extends UpdraftPlus_RemoteStorage_Ad
 	private $server_public_hostkey;
 
 	/**
+	 * Input and option field mappings with default values and supported contexts.
+	 *
+	 * @var array
+	 */
+	protected $input_option_field_mappings = array(
+		'host' => array(
+			'default_value' => '',
+			'contexts' => array('option', 'input'),
+		),
+		'port' => array(
+			'default_value' => '22',
+			'contexts' => array('option', 'input'),
+		),
+		'user' => array(
+			'default_value' => '',
+			'template_property_input_mapping' => 'username',
+			'contexts' => array('option', 'input'),
+		),
+		'pass' => array(
+			'default_value' => '',
+			'template_property_input_mapping' => 'password',
+			'contexts' => array('option', 'input'),
+		),
+		'key' => array(
+			'default_value' => '',
+			'contexts' => array('option', 'input'),
+		),
+		'rsa_fingerprint' => array(
+			'default_value' => '',
+			'contexts' => array('input'),
+		),
+		'path' => array(
+			'default_value' => '',
+			'template_property_input_mapping' => 'directory_path',
+			'contexts' => array('option', 'input'),
+		),
+		'scp' => array(
+			'default_value' => '',
+			'contexts' => array('option', 'input'),
+		),
+	);
+
+	/**
 	 * Set up the connection, change directory to the configured directory, and return a connection object
 	 *
 	 * @return WP_Error|Net_SSH2|Net_SCP
@@ -516,18 +559,6 @@ class UpdraftPlus_Addons_RemoteStorage_sftp extends UpdraftPlus_RemoteStorage_Ad
 		return array('multi_options', 'config_templates', 'multi_storage', 'conditional_logic');
 	}
 
-	public function get_default_options() {
-		return array(
-			'host' => '',
-			'port' => '22',
-			'user' => '',
-			'pass' => '',
-			'key' => '',
-			'path' => '',
-			'scp' => 0,
-		);
-	}
-
 	/**
 	 * Get the pre configuration template
 	 *
@@ -644,12 +675,22 @@ class UpdraftPlus_Addons_RemoteStorage_sftp extends UpdraftPlus_RemoteStorage_Ad
 		$properties = array(
 			'description_label' => __('Resuming partial uploads is supported for SFTP, but not for SCP.', 'updraftplus').' '.__('Thus, if using SCP then you will need to ensure that your webserver allows PHP processes to run long enough to upload your largest backup file.', 'updraftplus'),
 			'input_host_label' => __('Host', 'updraftplus'),
+			'input_host_placeholder' => __('Example: sftp.example.com', 'updraftplus'),
 			'input_port_label' => __('Port', 'updraftplus'),
+			'input_port_type' => 'number',
+			'input_port_min_value' => '0',
+			'input_port_default_value' => '22',
+			'input_port_placeholder' => __('Port 22 is the default value, which is commonly used for SSH connections.', 'updraftplus'),
 			'input_username_label' => __('Username', 'updraftplus'),
+			'input_username_placeholder' => __('Enter your username', 'updraftplus'),
 			'input_password_label' => __('Password', 'updraftplus'),
 			'input_key_label' => __('Key', 'updraftplus'),
+			'input_key_type' => 'textarea',
+			'input_key_placeholder' => __('Enter your key', 'updraftplus'),
 			'input_rsa_fingerprint_label' => __('Fingerprint', 'updraftplus'),
+			'input_rsa_fingerprint_placeholder' => __('Example: 73:51:43:b1:b5:f6:8b:b7:0a (MD5 with colons)', 'updraftplus'),
 			'input_directory_path_label' => __('Directory path', 'updraftplus'),
+			'input_directory_path_placeholder' => __('Example: /public_html/backups', 'updraftplus'),
 			'input_password_title' => __('Your login may be either password or key-based - you only need to enter one, not both.', 'updraftplus'),
 			'input_password_type' => apply_filters('updraftplus_admin_secret_field_type', 'password'),
 			'input_key_title' => _x('PKCS1 (PEM header: BEGIN PRIVATE KEY), XML and PuTTY format keys are accepted.', 'Do not translate BEGIN PRIVATE KEY. PCKS1, XML, PEM and PuTTY are also technical acronyms which should not be translated.', 'updraftplus'),
@@ -657,6 +698,7 @@ class UpdraftPlus_Addons_RemoteStorage_sftp extends UpdraftPlus_RemoteStorage_Ad
 			'input_rsa_fingerprint_html_label' => sprintf($rsa_fingerprint_tooltip, '<a href="http://en.wikipedia.org/wiki/Man-in-the-middle_attack" target="_blank">'.__('MITM attacks', 'updraftplus').'</a>'),
 			'input_directory_path_title' => __('Where to change directory to after logging in - often this is relative to your home directory.', 'updraftplus'),
 			'input_scp_label' => __('Use SCP instead of SFTP', 'updraftplus'),
+			'input_scp_type' => 'checkbox',
 			/* translators: %s: Backup method */
 			'input_test_label' => sprintf(__('Test %s Settings', 'updraftplus'), $updraftplus->backup_methods[$this->get_id()])
 		);
@@ -880,6 +922,30 @@ class UpdraftPlus_Addons_RemoteStorage_sftp extends UpdraftPlus_RemoteStorage_Ad
 	 */
 	private function is_elliptic_curve_host_key_algorithm($public_host_key) {
 		return is_a($public_host_key, 'phpseclib3_Crypt_EC');
+	}
+	
+	/**
+	 * Customize generated field data using legacy mapping values.
+	 *
+	 * Used by transform_template_properties_to_fields_structure()
+	 * to allow child classes to adjust the generated field structure
+	 * based on legacy data and field mapping requirements.
+	 *
+	 * @param array  $field               Field data.
+	 * @param array  $template_properties Template properties.
+	 * @param string $field_name          Field name.
+	 * @param array  $option              Field mapping option.
+	 *
+	 * @return array
+	 */
+	public function configure_field_from_legacy($field, $template_properties, $field_name, $option) {
+		$prefix = 'input_'.$option['template_property_input_mapping'].'_';
+
+		if (empty($field['tooltip']) && isset($template_properties[$prefix.'title'])) $field['tooltip'] = array('text' => $template_properties[$prefix.'title']);
+
+		if ('rsa_fingerprint' === $field_name && isset($template_properties[$prefix.'html_label'])) $field['tooltip'] = array('text' => $template_properties[$prefix.'html_label']);
+
+		return $field;
 	}
 }
 	
