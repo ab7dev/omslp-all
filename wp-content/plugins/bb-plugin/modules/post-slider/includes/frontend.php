@@ -18,8 +18,8 @@ if ( $query->have_posts() ) :
 		<?php if ( 'yes' == $settings->navigation && $query->have_posts() ) : ?>
 			<div class="fl-post-slider-navigation" aria-label="post slider buttons">
 				<?php if ( 1 == $module->version ) : ?>
-					<a class="slider-prev" href="#" aria-label="previous" role="button"><div class="fl-post-slider-svg-container"><?php include FL_BUILDER_DIR . 'img/svg/arrow-left.svg'; ?></div></a>
-					<a class="slider-next" href="#" aria-label="next" role="button"><div class="fl-post-slider-svg-container"><?php include FL_BUILDER_DIR . 'img/svg/arrow-right.svg'; ?></div></a>
+					<a class="slider-prev" aria-label="previous" role="button" tabindex="0"><div class="fl-post-slider-svg-container"><?php include FL_BUILDER_DIR . 'img/svg/arrow-left.svg'; ?></div></a>
+					<a class="slider-next" aria-label="next" role="button" tabindex="0"><div class="fl-post-slider-svg-container"><?php include FL_BUILDER_DIR . 'img/svg/arrow-right.svg'; ?></div></a>
 				<?php else : ?>
 					<button class="slider-prev fl-content-ui-button" aria-label="previous" type="button"><div class="fl-post-slider-svg-container"><?php include FL_BUILDER_DIR . 'img/svg/arrow-left.svg'; ?></div></button>
 					<button class="slider-next fl-content-ui-button" aria-label="next" type="button"><div class="fl-post-slider-svg-container"><?php include FL_BUILDER_DIR . 'img/svg/arrow-right.svg'; ?></div></button>
@@ -36,6 +36,9 @@ if ( $query->have_posts() ) :
 
 				ob_start();
 
+				/**
+				 * Path to the layout template file used to render the posts slider module.
+				 */
 				include apply_filters( 'fl_builder_posts_slider_layout_path', $module->dir . 'includes/post-loop.php', $settings, $module );
 
 				// Do shortcodes here so they are parsed in context of the current post.

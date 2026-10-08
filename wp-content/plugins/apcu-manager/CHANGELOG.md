@@ -3,6 +3,64 @@ All notable changes to **APCu Manager** are documented in this *changelog*.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and **APCu Manager** adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.6.1] - 2026-08-18
+
+### Fixed
+- The `readme.txt` file contains a wrong WordPress (tested-up-to) version.
+
+## [4.6.0] - 2026-08-18
+
+### Added
+- Compatibility with WordPress 7.1.
+
+### Changed
+- Collation for tables are now `utf8mb4_unicode_520_ci` (thanks to [Dareth Nhang](https://profiles.wordpress.org/d-signed/)).
+
+## [4.5.4] - 2026-07-27
+
+### Fixed
+- An error occurs when using WP Migrate and forcing APCu Manager to load during a “pull” or “push” migration (please, don't do that with WP Migrate).
+
+## [4.5.3] - 2026-07-13
+
+### Fixed
+- The previous fix didn't cover all cases.
+
+## [4.5.2] - 2026-07-13
+
+### Fixed
+- \APCUIterator standard php class may return non properly formated lists (special thanks to [Leo Santis](https://profiles.wordpress.org/leosantis/)).
+
+## [4.5.1] - 2026-07-13
+
+### Changed
+- Improvement for `wp_cache_delete_multiple()` and `wp_cache_flush_group()` standard WordPress functions (partial flushes).
+- Reduced memory usage for websites with huge amounts of content.
+
+### Fixed
+- Set correct CVE number and credits for [SEC005].
+
+## [4.5.0] - 2026-06-03
+
+### Added
+- Detection of untruthful or malformed keys.
+
+### Fixed
+- [SEC005] Stored XSS vulnerability in the object explorer / [CVE-2026-10083](https://www.cve.org/CVERecord?id=CVE-2026-10083) (thanks to [Alessandro Greco (aka Aleff)](https://aleff-gitlab.gitlab.io) via [WPScan](https://wpscan.com)).
+  
+## [4.4.0] - 2026-03-25
+
+### Added
+- Compatibility with WordPress 7.0.
+
+### Changed
+- Minimal requirements are now PHP 8.2 and WordPress 6.4.
+- Some strings in `readme.txt` have been updated.
+
+### Removed
+- Compatibility with PHP 8.1.
+- Compatibility with WordPress 6.2 & 6.3.
+
 ## [4.3.0] - 2025-11-22
 
 ### Added

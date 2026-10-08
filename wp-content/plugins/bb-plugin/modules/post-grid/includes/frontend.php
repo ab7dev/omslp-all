@@ -20,6 +20,9 @@ if ( FLBuilderModel::is_builder_active() && class_exists( 'FLThemeBuilder' ) && 
 // Render the posts.
 if ( ! $themer_archive_404 && $query->have_posts() ) :
 
+	/**
+	 * Fires before the posts loop begins in the posts module.
+	 */
 	do_action( 'fl_builder_posts_module_before_posts', $settings, $query );
 
 	$data_source = isset( $settings->data_source ) ? $settings->data_source : 'custom_query';
@@ -47,6 +50,9 @@ if ( ! $themer_archive_404 && $query->have_posts() ) :
 
 		ob_start();
 
+		/**
+		 * Path to the layout template file used to render each post in the posts module.
+		 */
 		include apply_filters( 'fl_builder_posts_module_layout_path', $module->dir . 'includes/post-' . $module->get_layout_slug() . '.php', $settings->layout, $settings );
 
 		// Do shortcodes here so they are parsed in context of the current post.
@@ -66,6 +72,9 @@ if ( ! $themer_archive_404 && $query->have_posts() ) :
 <?php endif; ?>
 <?php
 
+/**
+ * Fires after the posts loop ends in the posts module.
+ */
 do_action( 'fl_builder_posts_module_after_posts', $settings, $query );
 
 // Render the pagination.
@@ -87,6 +96,9 @@ if ( 'none' != $settings->pagination && $query->have_posts() && $query->max_num_
 <?php endif; ?>
 <?php
 
+/**
+ * Fires after the posts module pagination is rendered.
+ */
 do_action( 'fl_builder_posts_module_after_pagination', $settings, $query );
 
 // Render the empty message.

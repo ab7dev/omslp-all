@@ -6,7 +6,7 @@ $li_div            = $module->get_list_item_tag( $settings->list_type );
 $list_icon_default = '<span class="fl-list-item-icon"></span>';
 
 if ( 'div' === $settings->list_type && ! empty( $settings->div_icon ) ) {
-	$list_icon_default = '<i class="fl-list-item-icon ' . FLBuilderUtils::sanitize_html_class( $settings->div_icon ) . '" aria-hidden="true"></i>';
+	$list_icon_default = '<i class="fl-list-item-icon ' . esc_attr( FLBuilderModuleUtils::get_icon_classes( $settings, 'div_' ) ) . '" aria-hidden="true"></i>';
 }
 
 if ( 'basic' === $settings->list_layout ) {

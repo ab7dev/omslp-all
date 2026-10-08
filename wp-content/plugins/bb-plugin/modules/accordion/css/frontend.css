@@ -1,44 +1,40 @@
-.fl-accordion-button {
-	cursor: pointer;
-	display: table;
-}
-
-.fl-accordion-button button,
-.fl-accordion-button button:focus,
-.fl-accordion-button button:hover {
+.fl-accordion-button,
+.fl-accordion-button:focus,
+.fl-accordion-button:hover,
+button.fl-accordion-button-icon,
+button.fl-accordion-button-icon:hover {
 	all: unset;
 }
 
-.fl-accordion-button:focus {
-	outline: 0
+.fl-accordion-item a,
+.fl-accordion-item a:hover {
+	text-decoration: none;
+	color: inherit;
 }
 
+.fl-accordion .fl-accordion-button {
+	width: 100%;
+	display: flex;
+	cursor: pointer;
+	box-sizing: border-box;
+}
+
+.fl-accordion-heading,
 .fl-accordion-button-label {
-	display: table-cell;
 	width: 100%;
 	border: none;
 	background: none;
 	text-align: left;
-	text-decoration: none;
-}
-
-.fl-accordion-button-label:not(a) {
 	font-size: inherit;
 	font-family: inherit;
 	line-height: inherit;
+	margin: auto;
 }
 
 .fl-accordion-button .fl-accordion-button-icon:focus,
 .fl-accordion-button .fl-accordion-button-icon:active {
 	opacity: 1;
 	background: none;
-	text-decoration: none;
-	outline: 1px auto -webkit-focus-ring-color;
-}
-
-.fl-accordion-button-label:is(a):hover,
-.fl-accordion-button-icon:is(a):hover {
-	text-decoration: none;
 }
 
 .fl-accordion-button .fl-accordion-button-icon {
@@ -70,9 +66,6 @@
 
 .fl-accordion-content {
 	display: none;
-}
-.fl-accordion-item {
-	overflow: hidden;
 }
 
 /* Small */

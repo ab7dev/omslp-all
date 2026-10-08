@@ -27,6 +27,10 @@
 			<?php if ( isset( $settings->transition ) ) : ?>
 				mode: 'horizontal',
 			<?php endif; ?>
+			<?php if ( isset( $settings->navigation ) && 'yes' == $settings->navigation ) : ?>
+				prevSelector: '.fl-node-<?php echo $id; ?> .carousel-prev',
+				nextSelector: '.fl-node-<?php echo $id; ?> .carousel-next',
+			<?php endif; ?>
 			<?php if ( isset( $settings->pagination ) && 'no' == $settings->pagination ) : ?>
 				pager: false,
 			<?php endif; ?>

@@ -3,180 +3,152 @@
 
 	FLBuilderAccordion = function( settings )
 	{
-		this.settings 	 = settings;
-		this.nodeClass   = '.fl-node-' + settings.id;
-		this.expandOnTab = settings.expandOnTab;
+		this.settings = settings;
 		this._init();
 	};
 
 	FLBuilderAccordion.prototype = {
 
-		settings	  : {},
-		nodeClass   : '',
-		expandOnTab : false,
+		settings: {},
 
 		_init: function()
 		{
-			$( this.nodeClass + ' .fl-accordion-button' ).on('click keydown', $.proxy( this._buttonClick, this ) );
-			$( this.nodeClass + ' .fl-accordion-content' ).on('keydown', $.proxy( this._contentKeys, this ) );
-			$( this.nodeClass + ' .fl-accordion-button' ).on('focusin', $.proxy( this._focusIn, this ) );
-
-			if ( 'undefined' !== typeof FLBuilderLayout ) {
-				FLBuilderLayout.preloadAudio( this.nodeClass + ' .fl-accordion-content' );
-			}
-
-			this._openActiveAccordion();
+			const node = '.fl-node-' + this.settings.id;
+			const buttons = $( node + ' .fl-accordion-button' );
+			const contents = $( node + ' .fl-accordion-content' );
+			// Prevent event handlers from being attached multiple times when the accordion is nested
+			if ( $( node ).closest( '.fl-accordion' ).length ) return;
+			buttons.on( 'click keydown', $.proxy( this._buttonClick, this ) );
+			contents.on( 'keydown', $.proxy( this._contentKeys, this ) );
+			buttons.on( 'focus', $.proxy( this._buttonFocus, this ) );
+			if ( 'undefined' !== typeof FLBuilderLayout ) FLBuilderLayout.preloadAudio( node + ' .fl-accordion-content' );
+			if ( contents.first().closest( '.fl-accordion-item' ).hasClass( 'fl-accordion-item-active' ) ) contents.first().show();
 		},
 
-		_openActiveAccordion: function () {
-			var activeAccordion = $( this.nodeClass + ' .fl-accordion-item.fl-accordion-item-active' );
-
-			if ( activeAccordion.length > 0 ) {
-				activeAccordion.find('.fl-accordion-content:first').show();
-			}
-		},
-
-		_contentKeys: function( e )
+		_contentKeys: function( event )
 		{
-			const item   = $( e.target ).closest( '.fl-accordion-item' );
+			const item   = $( event.target ).closest( '.fl-accordion-item' );
 			const active = item.hasClass( 'fl-accordion-item-active' );
-			const typing = $( e.target ).is( 'input, textarea, select' ) || e.target.isContentEditable;
-			if ( e.key === 'Escape' && active ) {
+			const typing = $( event.target ).is( 'input, textarea, select' ) || event.target.isContentEditable;
+			if ( event.key === 'Escape' && active ) {
 				// Only toggle the accordion if the escape key was pressed and the item is active
 				this._toggleAccordion( item.find( '.fl-accordion-button' ) );
-			} else if ( e.key === ' ' && ! typing ) {
+			} else if ( event.key === ' ' && ! typing ) {
 				// Prevent the space key from scrolling the page when focus is on the content and not on a form field
-				e.preventDefault();
+				event.preventDefault();
 			}
 		},
 
-		_focusIn: function( e ) {
-			if ( ! e.relatedTarget || ! this.expandOnTab ) return;
+		_buttonFocus: function( event ) {
+			if ( ! event.relatedTarget || ! this.settings.expandOnTab ) return;
 			// Only toggle the accordion if the focus was triggered via keyboard navigation
-			if ( ! e.target.matches( ':focus-visible' ) ) return;
-			const button = $( e.target ).closest( '.fl-accordion-button' );
+			if ( ! event.target.matches( ':focus-visible' ) ) return;
+			const button = $( event.target ).closest( '.fl-accordion-button' );
 			this._toggleAccordion( button );
 		},
 
-		_buttonClick: function( e )
+		_buttonClick: function( event )
 		{
-			const item   = $( e.currentTarget ).closest( '.fl-accordion-item' );
-			const active = item.hasClass( 'fl-accordion-item-active' );
-			const button = item.find( '.fl-accordion-button' );
-			const target = 'fl-node-' + item.closest( '.fl-module-accordion' ).data( 'node' );
-			const	node   = this.nodeClass.replace( '.', '' );
 			// Check keyboard keys and ignore the rest
-			if( e.type === 'keydown' && ! [ ' ', 'Enter', 'Escape' ].includes( e.key ) ) return;
+			if ( event.type === 'keydown' && ! [ ' ', 'Enter', 'Escape' ].includes( event.key ) ) return;
 			// Only allow left click for mouse input or simulated clicks
-			if ( e.type === 'click' && e.button !== 0 && e.button !== undefined ) return;
-			// Prevent event handler being called twice when Accordion is nested
-			if ( node !== target ) return;
-			// Do not toggle the accordion if the escape key is pressed and the item is not active
-			if ( e.key === 'Escape' && ! active ) return;
+			if ( event.type === 'click' && event.button !== 0 && event.button !== undefined ) return;
 			// Prevent the space & enter keys from retoggling the button by not triggering a click event
-			if ( [ ' ', 'Enter' ].includes( e.key ) && $( e.target ).hasClass( 'fl-accordion-button-icon' ) ) e.preventDefault();
-			this._toggleAccordion( button );
+			if ( [ ' ', 'Enter' ].includes( event.key ) && $( event.target ).hasClass( 'fl-accordion-button' ) ) event.preventDefault();
+			const item   = $( event.target ).closest( '.fl-accordion-item' );
+			const active = item.hasClass( 'fl-accordion-item-active' );
+			const button = item.find( '.fl-accordion-button' ).first();
+			const parent = item.parent().closest( '.fl-accordion-item' ).find( '.fl-accordion-button' ).first();
+			// Do not toggle the accordion if the escape key is pressed and the item is not active or nested
+			if ( event.key === 'Escape' && ! active && ! parent.length ) return;
+			const outer = event.key === 'Escape' && parent.length && ! active;
+			this._toggleAccordion( outer ? parent : button );
 		},
 
 		_toggleAccordion: function( button ) {
-			var accordion = button.closest('.fl-accordion'),
-				item	      = button.closest('.fl-accordion-item'),
-				allContent  = accordion.find('.fl-accordion-content'),
-				allIcons    = accordion.find('.fl-accordion-button i.fl-accordion-button-icon'),
-				content     = button.siblings('.fl-accordion-content'),
-				icon        = button.find('i.fl-accordion-button-icon');
-
-			if(accordion.hasClass('fl-accordion-collapse')) {
-				accordion.find( '.fl-accordion-item-active' ).removeClass( 'fl-accordion-item-active' );
-				accordion.find( '.fl-accordion-button-icon:not(i)' ).attr('aria-expanded', 'false');
-				accordion.find( '.fl-accordion-content' ).attr('aria-hidden', 'true');
-				allContent.slideUp('normal');
-
-				if( allIcons.find('svg').length > 0 ) {
-					allIcons.find('svg').attr("data-icon",'plus');
-				} else {
-					allIcons.removeClass( this.settings.activeIcon );
-					allIcons.addClass( this.settings.labelIcon );
-				}
+			const accordion = button.closest( '.fl-accordion' );
+			if ( accordion.hasClass( 'fl-accordion-collapse' ) ) {
+				// collapse all accordion items if the accordion is set to collapse when a new item is opened
+				this._collapseAccordion( accordion );
 			}
-
-			if ( ! item.find( '.fl-accordion-button-icon:not(i)' ).is( ':focus' ) ) {
-				item.find( '.fl-accordion-button-icon:not(i)' ).trigger( 'focus' );
-			}
-
-			if(content.is(':hidden')) {
-				item.find( '.fl-accordion-button-icon:not(i)' ).attr('aria-expanded', 'true');
-				item.find( '.fl-accordion-content' ).attr('aria-hidden', 'false');
-				item.addClass( 'fl-accordion-item-active' );
-				content.slideDown('normal', this._slideDownComplete);
-
-				if( icon.find('svg').length > 0 ) {
-					icon.find('svg').attr("data-icon",'minus');
-				} else {
-					icon.removeClass( this.settings.labelIcon );
-					icon.addClass( this.settings.activeIcon );
-				}
-				icon.parent().find('span').text( this.settings.collapseTxt );
-				icon.find('span').text( this.settings.collapseTxt );
+			const item = button.closest( '.fl-accordion-item' );
+			const buttons = item.find( '.fl-accordion-button' );
+			const contents = item.find( '.fl-accordion-content' );
+			const icon = item.find( 'i.fl-accordion-button-icon' ).first();
+			const hidden = contents.first().is( ':hidden' );
+			if ( hidden ) {
+				// opens only the current accordion item and does not affect nested accordions
+				button.attr( 'aria-expanded', 'true' );
+				contents.first().attr( 'aria-hidden', 'false' ).slideDown( 'normal', this._slideDownComplete );
 			}
 			else {
-				item.find( '.fl-accordion-button-icon:not(i)' ).attr('aria-expanded', 'false');
-				item.find( '.fl-accordion-content' ).attr('aria-hidden', 'true');
-				item.removeClass( 'fl-accordion-item-active' );
-				content.slideUp('normal', this._slideUpComplete);
-
-				if( icon.find('svg').length > 0 ) {
-					icon.find('svg').attr("data-icon",'plus');
-				} else {
-					icon.removeClass( this.settings.activeIcon );
-					icon.addClass( this.settings.labelIcon );
-				}
-				icon.parent().find('span').text( this.settings.expandTxt );
-				icon.find('span').text( this.settings.expandTxt );
+				// collapse all nested accordions within the current item
+				buttons.attr( 'aria-expanded', 'false' );
+				contents.attr( 'aria-hidden', 'true' ).slideUp( 'normal', this._slideUpComplete );
 			}
+			item.toggleClass( 'fl-accordion-item-active', hidden );
+			this._toggleIcon( icon, hidden );
+			if ( ! button.is( ':focus' ) ) {
+				button.trigger( 'focus' );
+			}
+		},
+
+		_collapseAccordion: function( accordion ) {
+			const contents = accordion.find( '.fl-accordion-content' );
+			const buttons = accordion.find( '.fl-accordion-button' );
+			const icons = accordion.find( '.fl-accordion-button i.fl-accordion-button-icon' );
+			accordion.find( '.fl-accordion-item-active' ).removeClass( 'fl-accordion-item-active' );
+			contents.attr( 'aria-hidden', 'true' ).slideUp( 'normal' );
+			buttons.attr( 'aria-expanded', 'false' );
+			this._toggleIcon( icons, false );
+		},
+
+		_toggleIcon: function( icon, opened ) {
+			const self = this;
+			const text = opened ? this.settings.collapseTxt : this.settings.expandTxt;
+			icon.each( function() {
+				const $icon = $( this );
+				const svg = $icon.find( 'svg' );
+				if ( svg.length ) {
+					const name = opened ? 'minus' : 'plus';
+					svg.attr( 'data-icon', name );
+				} else {
+					const labelIcon  = $icon.data( 'label-icon' )  || self.settings.labelIcon;
+					const activeIcon = $icon.data( 'active-icon' ) || self.settings.activeIcon;
+					const classes = `${labelIcon} ${activeIcon}`;
+					const status  = opened ? activeIcon : labelIcon;
+					$icon.removeClass( classes ).addClass( status );
+				}
+				$icon.find( 'span' ).text( text );
+			} );
 		},
 
 		_slideUpComplete: function()
 		{
-			var content = $( this ),
-				accordion = content.closest( '.fl-accordion' );
-
-			accordion.trigger( 'fl-builder.fl-accordion-toggle-complete' );
+			$( this ).closest( '.fl-accordion' ).trigger( 'fl-builder.fl-accordion-toggle-complete' );
 		},
 
 		_slideDownComplete: function()
 		{
-			var content = $( this ),
-				accordion = content.closest( '.fl-accordion' ),
-				item 		  = content.parent(),
-				win  		  = $( window );
-
+			const content = $( this );
+			const	item = content.parent();
 			if ( 'undefined' !== typeof FLBuilderLayout ) {
 				FLBuilderLayout.refreshGalleries( content );
-
 				// Grid layout support (uses Masonry)
 				FLBuilderLayout.refreshGridLayout( content );
-
 				// Post Carousel support (uses BxSlider)
 				FLBuilderLayout.reloadSlider( content );
-
 				// WP audio shortcode support
 				FLBuilderLayout.resizeAudio( content );
-
 				// Reload Google Map embed.
 				FLBuilderLayout.reloadGoogleMap( content );
-
 				// Slideshow module support.
 				FLBuilderLayout.resizeSlideshow();
 			}
-
-			if ( item.offset().top < win.scrollTop() + 100 ) {
-				$( 'html, body' ).animate({
-					scrollTop: item.offset().top - 100
-				}, 500, 'swing');
+			if ( item.offset().top < $( window ).scrollTop() + 100 ) {
+				$( 'html, body' ).animate( { scrollTop: item.offset().top - 100 }, 500, 'swing' );
 			}
-
-			accordion.trigger( 'fl-builder.fl-accordion-toggle-complete' );
+			content.closest( '.fl-accordion' ).trigger( 'fl-builder.fl-accordion-toggle-complete' );
 		}
 
 	};

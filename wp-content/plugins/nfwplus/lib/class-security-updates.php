@@ -309,6 +309,7 @@ class NinjaFirewall_security_updates {
 
 		$plugins = get_plugins();
 		$cleared = 0;
+		$count   = 0;
 		// Get the list of plugin updates that WordPress marked as available.
 		$wp_updates = get_site_transient('update_plugins');
 
@@ -336,9 +337,9 @@ class NinjaFirewall_security_updates {
 						'version' => $nfw_checked['plugins'][$k]['version'],
 						'nonce'   => wp_create_nonce('pluginupgrade'),
 						// We don't display the "Install now" button if WordPress allows the upgrade
-						'upgrade' => isset( $wp_updates->response[ $k ] ) ? false : true
+						'upgrade' => isset( $wp_updates->response[ $k ] ) ? false : true,
+						'count'   => ++$count
 					];
-
 					add_action( "after_plugin_row_{$k}",
 					function() use ( $args ) {
 						?>
@@ -356,14 +357,15 @@ class NinjaFirewall_security_updates {
 									if ( $args['upgrade'] ) {
 										echo '<p>' . esc_html__('Because WordPress.org enforces a mandatory cooldown period of several hours on all new plugin releases, NinjaFirewall allows you to update this plugin immediately by clicking the button below.', 'nwplus') .'</p>';
 										?>
-										<button type="button" id="nf-progress-id" class="button button-secondary" onClick="nfwjs_upgrade_plugin('<?php
+										<button type="button" id="nf-progress-id-<?php echo esc_attr( $args['count'] ) ?>" class="button button-secondary" onClick="nfwjs_upgrade_plugin('<?php
 										echo esc_attr( $args['plugin'] ) ?>','<?php
 										echo esc_attr( $args['version'] ) ?>','<?php
-										echo esc_attr( $args['nonce'] ) ?>')" />
+										echo esc_attr( $args['nonce'] ) ?>','<?php
+										echo esc_attr( $args['count'] ) ?>')" />
 										<?php
-										echo esc_html__('Update the plugin now!', 'nwplus' )?></button>
+										echo esc_html__('Update the plugin now!', 'nwplus')?></button>
 										&nbsp;&nbsp;&nbsp;
-										<img style="vertical-align:middle;display:none" id="nf-progress-gif" src="<?php
+										<img style="vertical-align:middle;display:none" id="nf-progress-gif-<?php echo esc_attr( $args['count'] ) ?>" src="<?php
 											echo plugins_url('/images/progress.gif', dirname (__FILE__ ) ) ?>" />
 									<?php
 									}

@@ -200,9 +200,11 @@ FLBuilder::register_settings_form('icon_group_form', array(
 					'title'  => '', // Section Title
 					'fields' => array( // Section Fields
 						'icon'    => array(
-							'type'    => 'icon',
-							'label'   => __( 'Icon', 'fl-builder' ),
-							'default' => 'dashicons dashicons-before dashicons-wordpress-alt',
+							'type'               => 'icon',
+							'label'              => __( 'Icon', 'fl-builder' ),
+							'default'            => 'dashicons dashicons-before dashicons-wordpress-alt',
+							'show_extra_classes' => true,
+							'connections'        => array( 'icon' ),
 						),
 						'link'    => array(
 							'type'          => 'link',

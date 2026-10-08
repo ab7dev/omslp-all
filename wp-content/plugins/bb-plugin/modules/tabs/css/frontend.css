@@ -1,12 +1,13 @@
 /*  Labels
 ------------------------------------ */
-ul.fl-tabs-labels {
+.fl-tabs ul.fl-tabs-labels {
 	list-style: none;
-	margin: 0;
+	margin: 0 !important;
 	padding: 0;
 }
 a.fl-tabs-label {
 	display: block;
+	text-decoration: none;
 }
 .fl-tabs button.fl-tabs-label,
 button.fl-tabs-label:focus,
@@ -16,24 +17,15 @@ button.fl-tabs-label:hover {
 }
 .fl-tabs .fl-tabs-label:is(a, button) {
 	cursor: pointer;
-}
-.fl-tabs .fl-tabs-label:is(a, button) {
+	position: relative;
 	padding: 12px 18px;
 }
 .fl-tabs .fl-tabs-label.fl-tab-active {
 	background: #fff;
-	position: relative;
 	z-index: 1;
 }
-.fl-tabs .fl-tabs-label:focus {
-	outline: 1px auto -webkit-focus-ring-color;
-	outline-offset: -1px;
-	overflow: hidden;
-}
-.fl-tabs-labels .fl-tabs-label:active,
-.fl-tabs-labels .fl-tabs-label:focus,
-.fl-tabs-labels .fl-tabs-label:hover {
-	text-decoration: none;
+.fl-tabs .fl-tabs-label:is(a, button):focus {
+	z-index: 2;
 }
 
 /*  Panel Labels
@@ -132,4 +124,9 @@ button.fl-tabs-label:hover {
 .fl-tabs-vertical .fl-tabs-panels {
 	float: left;
 	width: 70%;
+}
+
+/*  Default margin for classic themes */
+:where(body:not(:has(.wp-site-blocks)) .fl-block.fl-module-tabs .fl-module-content) {
+	margin-bottom: 20px;
 }

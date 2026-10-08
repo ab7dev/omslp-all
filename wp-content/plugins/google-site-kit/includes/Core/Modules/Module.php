@@ -6,6 +6,8 @@
  * @copyright 2021 Google LLC
  * @license   https://www.apache.org/licenses/LICENSE-2.0 Apache License 2.0
  * @link      https://sitekit.withgoogle.com
+ *
+ * phpcs:disable PHPCS.Commenting.RequireDocTagDescription -- Pre-existing violations; tracked for follow-up cleanup.
  */
 
 namespace Google\Site_Kit\Core\Modules;
@@ -120,6 +122,14 @@ abstract class Module {
 	 * @var array|null
 	 */
 	private $google_services;
+
+	/**
+	 * Memoized datapoint definitions map.
+	 *
+	 * @since 1.181.0
+	 * @var array|null
+	 */
+	private $datapoint_definitions;
 
 	/**
 	 * Constructor.
@@ -281,13 +291,22 @@ abstract class Module {
 	 * Gets the datapoint definition instance.
 	 *
 	 * @since 1.77.0
+	 * @since 1.181.0 Changed visibility to public so REST permission checks can
+	 *               inspect a datapoint (e.g. for Permission_Aware_Datapoint).
 	 *
-	 * @param string $datapoint_id Datapoint ID.
+	 * @param string $datapoint_id Datapoint ID, in the `METHOD:datapoint` form (e.g. `GET:report`).
 	 * @return Datapoint Datapoint instance.
 	 * @throws Invalid_Datapoint_Exception Thrown if no datapoint exists by the given ID.
 	 */
-	protected function get_datapoint_definition( $datapoint_id ) {
-		$definitions = $this->get_datapoint_definitions();
+	public function get_datapoint_definition( $datapoint_id ) {
+		// Memoize the definitions map: a single module data request resolves the
+		// same datapoint twice (once for the permission check, once to execute),
+		// and rebuilding the full map instantiates every datapoint object.
+		if ( null === $this->datapoint_definitions ) {
+			$this->datapoint_definitions = $this->get_datapoint_definitions();
+		}
+
+		$definitions = $this->datapoint_definitions;
 
 		// All datapoints must be defined.
 		if ( empty( $definitions[ $datapoint_id ] ) ) {
@@ -418,7 +437,7 @@ abstract class Module {
 		if ( $required_scopes && ! $oauth_client->has_sufficient_scopes( $required_scopes ) ) {
 			$message = $datapoint->get_request_scopes_message();
 
-			throw new Insufficient_Scopes_Exception( $message, 0, null, $required_scopes );
+			throw new Insufficient_Scopes_Exception( $message, 0, null, $required_scopes ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Returned to the browser as JSON via WP_Error, escaping would show HTML entities to the user.
 		}
 	}
 
@@ -440,7 +459,7 @@ abstract class Module {
 				__( 'Site Kit can’t access the relevant data from %s because you haven’t granted all permissions requested during setup.', 'google-site-kit' ),
 				$this->name
 			);
-			throw new Insufficient_Scopes_Exception( $message, 0, null, $this->get_scopes() );
+			throw new Insufficient_Scopes_Exception( $message, 0, null, $this->get_scopes() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Returned to the browser as JSON via WP_Error, escaping would show HTML entities to the user.
 		}
 	}
 
@@ -485,7 +504,7 @@ abstract class Module {
 		if ( null === $this->google_client ) {
 			$client = $this->setup_client();
 			if ( ! $client instanceof Google_Site_Kit_Client ) {
-				throw new Exception( __( 'Google client not set up correctly.', 'google-site-kit' ) );
+				throw new Exception( __( 'Google client not set up correctly.', 'google-site-kit' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Returned to the browser as JSON via WP_Error, escaping would show HTML entities to the user.
 			}
 			$this->google_client = $client;
 		}
@@ -539,11 +558,11 @@ abstract class Module {
 		if ( null === $this->google_services ) {
 			$services = $this->setup_services( $this->get_client() );
 			if ( ! is_array( $services ) ) {
-				throw new Exception( __( 'Google services not set up correctly.', 'google-site-kit' ) );
+				throw new Exception( __( 'Google services not set up correctly.', 'google-site-kit' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Returned to the browser as JSON via WP_Error, escaping would show HTML entities to the user.
 			}
 			foreach ( $services as $service ) {
 				if ( ! $service instanceof Google_Service ) {
-					throw new Exception( __( 'Google services not set up correctly.', 'google-site-kit' ) );
+					throw new Exception( __( 'Google services not set up correctly.', 'google-site-kit' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Returned to the browser as JSON via WP_Error, escaping would show HTML entities to the user.
 				}
 			}
 			$this->google_services = $services;
@@ -551,7 +570,7 @@ abstract class Module {
 
 		if ( ! isset( $this->google_services[ $identifier ] ) ) {
 			/* translators: %s: service identifier */
-			throw new Exception( sprintf( __( 'Google service identified by %s does not exist.', 'google-site-kit' ), $identifier ) );
+			throw new Exception( sprintf( __( 'Google service identified by %s does not exist.', 'google-site-kit' ), $identifier ) ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Returned to the browser as JSON via WP_Error, escaping would show HTML entities to the user.
 		}
 
 		return $this->google_services[ $identifier ];

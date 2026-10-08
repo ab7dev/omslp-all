@@ -25,7 +25,7 @@
 
 				<?php if ( isset( $settings->post_has_icon ) && 'yes' == $settings->post_has_icon && 'above' == $post_icon_position ) : ?>
 					<span class="fl-carousel-icon">
-						<i class="<?php echo $settings->post_icon; ?>"></i>
+						<i class="<?php echo esc_attr( FLBuilderModuleUtils::get_icon_classes( $settings, 'post_' ) ); ?>"></i>
 					</span>
 				<?php endif; ?>
 
@@ -58,7 +58,7 @@
 
 				<?php if ( isset( $settings->post_has_icon ) && 'yes' == $settings->post_has_icon && 'below' == $post_icon_position ) : ?>
 					<span class="fl-carousel-icon">
-						<i class="<?php echo $settings->post_icon; ?>"></i>
+						<i class="<?php echo esc_attr( FLBuilderModuleUtils::get_icon_classes( $settings, 'post_' ) ); ?>"></i>
 					</span>
 				<?php endif; ?>
 

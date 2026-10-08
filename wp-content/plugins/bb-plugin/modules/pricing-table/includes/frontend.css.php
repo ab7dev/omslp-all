@@ -18,21 +18,37 @@
 	endif;
 
 	// Tooltip Text Color
-	if ( ! empty( $settings->tooltip_text_color ) ) :
+	$tooltip_text_color = '';
+	if ( 'fl-builder-tooltip-dark' === $settings->tooltip_style ) {
+		$tooltip_text_color = ! empty( $settings->tooltip_dark_text_color ) ? $settings->tooltip_dark_text_color : '';
+	} elseif ( 'fl-builder-tooltip-light' === $settings->tooltip_style ) {
+		$tooltip_text_color = ! empty( $settings->tooltip_light_text_color ) ? $settings->tooltip_light_text_color : '';
+	} else {
+		$tooltip_text_color = ! empty( $settings->tooltip_text_color ) ? $settings->tooltip_text_color : '';
+	}
+	if ( ! empty( $tooltip_text_color ) ) :
 		FLBuilderCSS::rule( array(
 			'selector' => ".fl-node-$id .fl-pricing-table-features .fl-pricing-table-feature-item .fl-builder-tooltip .fl-builder-tooltip-text",
 			'props'    => array(
-				'color' => $settings->tooltip_text_color,
+				'color' => $tooltip_text_color,
 			),
 		) );
 	endif;
 
 	// Tooltip Background Color
-	if ( ! empty( $settings->tooltip_bg_color ) ) :
+	$tooltip_bg_color = '';
+	if ( 'fl-builder-tooltip-dark' === $settings->tooltip_style ) {
+		$tooltip_bg_color = ! empty( $settings->tooltip_dark_bg_color ) ? $settings->tooltip_dark_bg_color : '';
+	} elseif ( 'fl-builder-tooltip-light' === $settings->tooltip_style ) {
+		$tooltip_bg_color = ! empty( $settings->tooltip_light_bg_color ) ? $settings->tooltip_light_bg_color : '';
+	} else {
+		$tooltip_bg_color = ! empty( $settings->tooltip_bg_color ) ? $settings->tooltip_bg_color : '';
+	}
+	if ( ! empty( $tooltip_bg_color ) ) :
 		FLBuilderCSS::rule( array(
 			'selector' => ".fl-node-$id .fl-pricing-table-features .fl-pricing-table-feature-item .fl-builder-tooltip-text",
 			'props'    => array(
-				'background-color' => $settings->tooltip_bg_color,
+				'background-color' => $tooltip_bg_color,
 			),
 		) );
 	endif;
@@ -41,7 +57,8 @@
 	FLBuilderCSS::responsive_rule( array(
 		'settings'     => $settings,
 		'setting_name' => 'tooltip_icon_size',
-		'enabled'      => ! empty( $settings->tooltip_icon_size ),
+		// Evaluate per breakpoint so a responsive-only size (e.g. mobile set, desktop blank) still renders.
+		'enabled'      => 'not_empty',
 		'selector'     => ".fl-node-$id .fl-pricing-table-features .fl-pricing-table-feature-item .fl-builder-tooltip-icon",
 		'prop'         => 'font-size',
 		'unit'         => 'px',
@@ -60,7 +77,8 @@
 	FLBuilderCSS::responsive_rule( array(
 		'settings'     => $settings,
 		'setting_name' => 'feature_icon_size',
-		'enabled'      => ! empty( $settings->feature_icon_size ),
+		// Evaluate per breakpoint so a responsive-only size (e.g. mobile set, desktop blank) still renders.
+		'enabled'      => 'not_empty',
 		'selector'     => ".fl-node-$id .fl-feature-icon",
 		'prop'         => 'font-size',
 		'unit'         => 'px',
@@ -304,6 +322,20 @@ FLBuilderCSS::typography_field_rule( array(
 	}
 <?php endif; ?>
 
+<?php if ( 'no' !== $settings->dual_billing && ! empty( $settings->price_term_color ) ) : ?>
+	.fl-node-<?php echo $id; ?> .fl-pricing-table-price span.fl-price-term {
+		color: <?php echo FLBuilderColor::hex_or_rgb( $settings->price_term_color ); ?>;
+	}
+<?php endif; ?>
+<?php
+	FLBuilderCSS::typography_field_rule( array(
+		'settings'     => $settings,
+		'setting_name' => 'price_term_typography',
+		'enabled'      => 'no' !== $settings->dual_billing,
+		'selector'     => ".fl-node-$id .fl-pricing-table-price .fl-price-term",
+	) );
+	?>
+
 <?php
 // Loop through and style each pricing box
 $total_pricing_cols = count( $settings->pricing_columns );
@@ -359,7 +391,7 @@ for ( $i = 0; $i < $total_pricing_cols; $i++ ) :
 		}
 	<?php endif; ?>
 	<?php if ( ! empty( $pricing_column->price_color ) ) : ?>
-		.fl-node-<?php echo $id; ?> .fl-pricing-table .fl-pricing-table-wrap .fl-pricing-table-column-<?php echo $i; ?> .fl-pricing-table-price span {
+		.fl-node-<?php echo $id; ?> .fl-pricing-table .fl-pricing-table-wrap .fl-pricing-table-column-<?php echo $i; ?> .fl-pricing-table-price span:not(.fl-price-term) {
 			color: <?php echo FLBuilderColor::hex_or_rgb( $pricing_column->price_color ); ?>;
 		}
 	<?php endif; ?>
@@ -385,8 +417,7 @@ for ( $i = 0; $i < $total_pricing_cols; $i++ ) :
 
 	/*Pricing Box Highlight*/
 	<?php if ( 'price' == $settings->highlight ) : ?>
-	.fl-node-<?php echo $id; ?> .fl-pricing-table .fl-pricing-table-column-<?php echo $i; ?> .fl-pricing-table-price,
-	.fl-node-<?php echo $id; ?> .fl-pricing-table .fl-pricing-table-column-<?php echo $i; ?> .fl-pricing-table-price span {
+	.fl-node-<?php echo $id; ?> .fl-pricing-table .fl-pricing-table-column-<?php echo $i; ?> .fl-pricing-table-price {
 		background: <?php echo FLBuilderColor::hex_or_rgb( $pricing_column->column_background ); ?>;
 		color: <?php echo FLBuilderColor::hex_or_rgb( $pricing_column->column_color ); ?>;
 	}

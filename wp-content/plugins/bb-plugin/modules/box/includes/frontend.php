@@ -1,3 +1,3 @@
-<<?php $module->tag( 'div' ); ?> <?php $module->render_attributes(); ?>>
+<<?php echo $module->get_tag(); ?> <?php $module->render_attributes( $module->link_attributes() ); ?>>
 	<?php $module->render_children(); ?>
-</<?php $module->tag( 'div' ); ?>>
+</<?php echo $module->get_tag(); ?>>

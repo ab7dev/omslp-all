@@ -851,6 +851,9 @@ final class FLThemeBuilderRulesLocation {
 
 				if ( 'post_format' == $taxonomy_slug ) {
 					continue;
+					/**
+					 * Whether a taxonomy should appear in the Theme Builder location rules interface.
+					 */
 				} elseif ( ! apply_filters( 'fl_theme_builder_show_taxonomy', $public, $taxonomy ) ) {
 					continue;
 				}
@@ -1191,7 +1194,7 @@ final class FLThemeBuilderRulesLocation {
 
 			$data['objects'] = array_values( $pages );
 
-			// Bailout early. Process non-hierachical Post Types below.
+			// Bailout early. Process non-hierarchical Post Types below.
 			return $data;
 		}
 

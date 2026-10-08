@@ -22,6 +22,10 @@
 			<?php if ( isset( $settings->transition ) ) : ?>
 				mode: '<?php echo esc_js( $settings->transition ); ?>',
 			<?php endif; ?>
+			<?php if ( isset( $settings->navigation ) && 'yes' == $settings->navigation ) : ?>
+				prevSelector: '.fl-node-<?php echo $id; ?> .slider-prev',
+				nextSelector: '.fl-node-<?php echo $id; ?> .slider-next',
+			<?php endif; ?>
 			<?php if ( isset( $settings->pagination ) && 'no' == $settings->pagination ) : ?>
 				pager: false,
 			<?php endif; ?>

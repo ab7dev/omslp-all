@@ -218,6 +218,9 @@ class FLPostGridModule extends FLBuilderModule {
 			$classes[] = $settings->posts_container_class;
 		}
 
+		/**
+		 * Array of CSS classes added to the posts module wrapper element.
+		 */
 		post_class( apply_filters( 'fl_builder_posts_module_classes', $classes, $settings ) );
 	}
 
@@ -340,7 +343,7 @@ class FLPostGridModule extends FLBuilderModule {
 	 */
 	public function render_404() {
 		echo '<div class="fl-post-grid-empty">';
-		echo '<p>' . $this->settings->no_results_message . '</p>';
+		echo '<p>' . esc_html( $this->settings->no_results_message ) . '</p>';
 
 		if ( $this->settings->show_search ) {
 			get_search_form();
@@ -1244,9 +1247,10 @@ FLBuilder::register_module('FLPostGridModule', array(
 						'show_reset'  => true,
 						'show_alpha'  => true,
 						'preview'     => array(
-							'type'     => 'css',
-							'selector' => '.fl-post-feed-content a, .fl-post-grid-content a',
-							'property' => 'color',
+							'type'      => 'css',
+							'selector'  => '{node} .fl-post-feed-content a.fl-post-feed-more, {node} .fl-post-grid-content a.fl-post-grid-more',
+							'property'  => 'color',
+							'important' => true,
 						),
 					),
 					'link_hover_color'   => array(
@@ -1256,9 +1260,10 @@ FLBuilder::register_module('FLPostGridModule', array(
 						'show_reset'  => true,
 						'show_alpha'  => true,
 						'preview'     => array(
-							'type'     => 'css',
-							'selector' => '.fl-post-feed-content a:hover, .fl-post-grid-content a:hover',
-							'property' => 'color',
+							'type'      => 'css',
+							'selector'  => '{node} .fl-post-feed-content a.fl-post-feed-more:hover, {node} .fl-post-grid-content a.fl-post-grid-more:hover',
+							'property'  => 'color',
+							'important' => true,
 						),
 					),
 				),
@@ -1330,8 +1335,10 @@ FLBuilder::register_module('FLPostGridModule', array(
 						),
 					),
 					'icon'          => array(
-						'type'  => 'icon',
-						'label' => __( 'Post Icon', 'fl-builder' ),
+						'type'               => 'icon',
+						'label'              => __( 'Post Icon', 'fl-builder' ),
+						'show_extra_classes' => true,
+						'connections'        => array( 'icon' ),
 					),
 					'duo_color1'    => array(
 						'label'       => __( 'DuoTone Icon Primary Color', 'fl-builder' ),
@@ -1392,7 +1399,7 @@ FLBuilder::register_module('FLPostGridModule', array(
 		),
 	),
 	'content'    => array(
-		'title' => __( 'Content', 'fl-builder' ),
+		'title' => __( 'Query', 'fl-builder' ),
 		'file'  => FL_BUILDER_DIR . 'includes/loop-settings.php',
 	),
 	'pagination' => array(
@@ -1476,6 +1483,7 @@ FLBuilder::register_module('FLPostGridModule', array(
 						'type'        => 'icon',
 						'label'       => __( 'Button Icon', 'fl-builder' ),
 						'show_remove' => true,
+						'connections' => array( 'icon' ),
 						'show'        => array(
 							'fields' => array( 'more_btn_icon_position', 'more_btn_icon_animation' ),
 						),

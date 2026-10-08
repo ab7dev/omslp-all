@@ -26,7 +26,7 @@
 		},
 
 		/**
-		 * Destory preview.
+		 * Destroy preview.
 		 *
 		 * @method destroy
 		 */

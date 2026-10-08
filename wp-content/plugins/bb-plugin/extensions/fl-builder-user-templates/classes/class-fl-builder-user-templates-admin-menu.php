@@ -50,6 +50,9 @@ final class FLBuilderUserTemplatesAdminMenu {
 			$_registered_pages[ $add_new_hook ] = true;
 		}
 
+		/**
+		 * Admin menu configuration for the User Templates section.
+		 */
 		$submenu[ $parent ] = apply_filters( 'fl_builder_user_templates_admin_menu', $submenu[ $parent ] );
 	}
 

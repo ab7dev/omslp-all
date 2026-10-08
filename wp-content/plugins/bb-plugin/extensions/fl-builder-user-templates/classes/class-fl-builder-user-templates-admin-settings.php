@@ -14,6 +14,8 @@ final class FLBuilderUserTemplatesAdminSettings {
 	 * @return void
 	 */
 	static public function init() {
+		add_action( 'wp_ajax_fl_template_visibility_save', array( __CLASS__, 'ajax_template_visibility_save' ) );
+
 		if ( is_admin() && isset( $_REQUEST['page'] ) && in_array( $_REQUEST['page'], array( 'fl-builder-settings', 'fl-builder-multisite-settings' ) ) ) {
 			add_filter( 'fl_builder_admin_settings_nav_items', __CLASS__ . '::admin_settings_nav_items' );
 			add_action( 'fl_builder_admin_settings_render_forms', __CLASS__ . '::admin_settings_render_form' );
@@ -63,6 +65,33 @@ final class FLBuilderUserTemplatesAdminSettings {
 
 			FLBuilderModel::update_admin_settings_option( '_fl_builder_enabled_templates', $enabled_templates, true );
 		}
+	}
+
+	/**
+	 * AJAX handler for saving template visibility setting.
+	 *
+	 * @since 2.11
+	 * @return void
+	 */
+	static public function ajax_template_visibility_save() {
+		if ( ! isset( $_POST['_wpnonce'] ) || ! wp_verify_nonce( $_POST['_wpnonce'], 'templates' ) ) {
+			wp_send_json_error();
+		}
+
+		if ( ! current_user_can( FLBuilderAdmin::admin_settings_capability() ) ) {
+			wp_send_json_error();
+		}
+
+		$value = sanitize_text_field( $_POST['value'] );
+
+		$valid_values = array( 'enabled', 'core', 'user', 'disabled' );
+		if ( ! in_array( $value, $valid_values, true ) ) {
+			wp_send_json_error();
+		}
+
+		FLBuilderModel::update_admin_settings_option( '_fl_builder_enabled_templates', $value, true );
+
+		wp_send_json_success();
 	}
 }
 

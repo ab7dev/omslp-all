@@ -31,7 +31,7 @@ final class FLBuilderGlobalStyles {
 	 */
 	static public function init() {
 		// actions.
-		add_action( 'after_setup_theme', __CLASS__ . '::load_settings', 1 );
+		add_action( 'setup_theme', __CLASS__ . '::load_settings', 1 );
 		add_action( 'wp', __CLASS__ . '::register_ajax_actions', 1 );
 		add_action( 'wp_enqueue_scripts', __CLASS__ . '::enqueue_global_styles_scripts', 9 );
 		add_action( 'wp_enqueue_scripts', __CLASS__ . '::enqueue_global_styles_preview_scripts', 20 );
@@ -177,6 +177,9 @@ final class FLBuilderGlobalStyles {
 
 		// Must be filtered this way for backwards compat. Previously, the
 		// entire BB config array was filtered.
+		/**
+		 * JSON string of global color definitions before it is saved.
+		 */
 		$filtered = apply_filters( 'fl_builder_global_colors_json', [
 			'themeJSON' => $theme_json,
 		] );
@@ -338,6 +341,14 @@ final class FLBuilderGlobalStyles {
 	 * @return object
 	 */
 	static public function save_settings( $settings = array() ) {
+		// Settings may be JSON-encoded to avoid max_input_vars limits.
+		if ( is_string( $settings ) ) {
+			$settings = json_decode( $settings, true );
+			if ( null === $settings ) {
+				return self::get_settings( false );
+			}
+		}
+
 		$old_settings = self::get_settings( false );
 		$settings     = FLBuilderModel::sanitize_global( $settings );
 		$new_settings = (object) array_merge( (array) $old_settings, (array) $settings );
@@ -569,6 +580,32 @@ final class FLBuilderGlobalStyles {
 				'.fl-builder-content input[type=button]',
 				'.fl-builder-content input[type=submit]',
 				'.fl-builder-content .fl-button:is(a, button)',
+			),
+			'enabled'  => ! empty( $settings->button_width ) && 'full' === $settings->button_width,
+			'props'    => array(
+				'width' => '100%',
+			),
+		) );
+
+		FLBuilderCSS::rule( array(
+			'selector' => array(
+				'.fl-builder-content button:not(.fl-content-ui-button)',
+				'.fl-builder-content input[type=button]',
+				'.fl-builder-content input[type=submit]',
+				'.fl-builder-content .fl-button:is(a, button)',
+			),
+			'enabled'  => ! empty( $settings->button_width ) && 'custom' === $settings->button_width,
+			'props'    => array(
+				'width' => ( '' === trim( $settings->button_custom_width ) ? '200' : abs( $settings->button_custom_width ) ) . $settings->button_custom_width_unit,
+			),
+		) );
+
+		FLBuilderCSS::rule( array(
+			'selector' => array(
+				'.fl-builder-content button:not(.fl-content-ui-button)',
+				'.fl-builder-content input[type=button]',
+				'.fl-builder-content input[type=submit]',
+				'.fl-builder-content .fl-button:is(a, button)',
 				'.fl-builder-content button:not(.fl-content-ui-button) *',
 				'.fl-builder-content input[type=button] *',
 				'.fl-builder-content input[type=submit] *',
@@ -646,6 +683,7 @@ final class FLBuilderGlobalStyles {
 				'.fl-page .fl-builder-content input[type=submit]:visited',
 				'.fl-page .fl-builder-content a.fl-button:visited',
 			),
+			'enabled'  => 'flat' === $settings->button_background_style,
 			'props'    => array(
 				'background-color' => $settings->button_background,
 			),
@@ -662,8 +700,93 @@ final class FLBuilderGlobalStyles {
 				'.fl-page .fl-builder-content input[type=submit]:hover',
 				'.fl-page .fl-builder-content .fl-button:is(a, button):hover',
 			),
+			'enabled'  => 'flat' === $settings->button_background_style,
 			'props'    => array(
 				'background-color' => $settings->button_hover_background,
+			),
+		) );
+
+		FLBuilderCSS::rule( array(
+			'selector' => array(
+				'.fl-builder-content .fl-module-content:not(:has(.fl-inline-editor)) button:not(.fl-content-ui-button)',
+				'.fl-builder-content input[type=button]',
+				'.fl-builder-content input[type=submit]',
+				'.fl-builder-content .fl-button:is(a, button)',
+				'.fl-builder-content button:visited',
+				'.fl-builder-content input[type=button]:visited',
+				'.fl-builder-content input[type=submit]:visited',
+				'.fl-builder-content a.fl-button:visited',
+				'.fl-page .fl-builder-content .fl-module-content:not(:has(.fl-inline-editor)) button:not(.fl-content-ui-button)',
+				'.fl-page .fl-builder-content input[type=button]',
+				'.fl-page .fl-builder-content input[type=submit]',
+				'.fl-page .fl-builder-content .fl-button:is(a, button)',
+				'.fl-page .fl-builder-content button:visited',
+				'.fl-page .fl-builder-content input[type=button]:visited',
+				'.fl-page .fl-builder-content input[type=submit]:visited',
+				'.fl-page .fl-builder-content a.fl-button:visited',
+			),
+			'enabled'  => 'gradient' === $settings->button_background_style && ! empty( $settings->button_background ),
+			'props'    => array(
+				'background' => 'linear-gradient(to bottom, ' . FLBuilderColor::hex_or_rgb( FLBuilderColor::adjust_brightness( $settings->button_background, 30, 'lighten' ) ) . ' 0%, ' . FLBuilderColor::hex_or_rgb( $settings->button_background ) . ' 100%)',
+			),
+		) );
+
+		FLBuilderCSS::rule( array(
+			'selector' => array(
+				'.fl-builder-content .fl-module-content:not(:has(.fl-inline-editor)) button:not(.fl-content-ui-button):hover',
+				'.fl-builder-content input[type=button]:hover',
+				'.fl-builder-content input[type=submit]:hover',
+				'.fl-builder-content a.fl-button:hover',
+				'.fl-page .fl-builder-content .fl-module-content:not(:has(.fl-inline-editor)) button:not(.fl-content-ui-button):hover',
+				'.fl-page .fl-builder-content input[type=button]:hover',
+				'.fl-page .fl-builder-content input[type=submit]:hover',
+				'.fl-page .fl-builder-content a.fl-button:hover',
+			),
+			'enabled'  => 'gradient' === $settings->button_background_style && ! empty( $settings->button_hover_background ),
+			'props'    => array(
+				'background' => 'linear-gradient(to bottom, ' . FLBuilderColor::hex_or_rgb( FLBuilderColor::adjust_brightness( $settings->button_hover_background, 30, 'lighten' ) ) . ' 0%, ' . FLBuilderColor::hex_or_rgb( $settings->button_hover_background ) . ' 100%)',
+			),
+		) );
+
+		FLBuilderCSS::rule( array(
+			'selector' => array(
+				'.fl-builder-content .fl-module-content:not(:has(.fl-inline-editor)) button:not(.fl-content-ui-button)',
+				'.fl-builder-content input[type=button]',
+				'.fl-builder-content input[type=submit]',
+				'.fl-builder-content .fl-button:is(a, button)',
+				'.fl-builder-content button:visited',
+				'.fl-builder-content input[type=button]:visited',
+				'.fl-builder-content input[type=submit]:visited',
+				'.fl-builder-content a.fl-button:visited',
+				'.fl-page .fl-builder-content .fl-module-content:not(:has(.fl-inline-editor)) button:not(.fl-content-ui-button)',
+				'.fl-page .fl-builder-content input[type=button]',
+				'.fl-page .fl-builder-content input[type=submit]',
+				'.fl-page .fl-builder-content .fl-button:is(a, button)',
+				'.fl-page .fl-builder-content button:visited',
+				'.fl-page .fl-builder-content input[type=button]:visited',
+				'.fl-page .fl-builder-content input[type=submit]:visited',
+				'.fl-page .fl-builder-content a.fl-button:visited',
+			),
+			'enabled'  => 'adv-gradient' === $settings->button_background_style && FLBuilderColor::gradient( $settings->button_background_gradient, true ),
+			'props'    => array(
+				'background-image' => FLBuilderColor::gradient( $settings->button_background_gradient ),
+			),
+		) );
+
+		FLBuilderCSS::rule( array(
+			'selector' => array(
+				'.fl-builder-content .fl-module-content:not(:has(.fl-inline-editor)) button:not(.fl-content-ui-button):hover',
+				'.fl-builder-content input[type=button]:hover',
+				'.fl-builder-content input[type=submit]:hover',
+				'.fl-builder-content a.fl-button:hover',
+				'.fl-page .fl-builder-content .fl-module-content:not(:has(.fl-inline-editor)) button:not(.fl-content-ui-button):hover',
+				'.fl-page .fl-builder-content input[type=button]:hover',
+				'.fl-page .fl-builder-content input[type=submit]:hover',
+				'.fl-page .fl-builder-content a.fl-button:hover',
+			),
+			'enabled'  => 'adv-gradient' === $settings->button_background_style && FLBuilderColor::gradient( $settings->button_hover_background_gradient, true ),
+			'props'    => array(
+				'background-image' => FLBuilderColor::gradient( $settings->button_hover_background_gradient ),
 			),
 		) );
 
@@ -726,6 +849,34 @@ final class FLBuilderGlobalStyles {
 			),
 			'props'    => array(
 				'border-color' => $settings->button_border_hover_color,
+			),
+		) );
+
+		FLBuilderCSS::dimension_field_rule( array(
+			'settings'     => $settings,
+			'setting_name' => 'button_padding',
+			'selector'     => array(
+				'.fl-builder-content button:not(.fl-content-ui-button)',
+				'.fl-builder-content input[type=button]',
+				'.fl-builder-content input[type=submit]',
+				'.fl-builder-content .fl-button:is(a, button)',
+			),
+			'unit'         => 'px',
+			'props'        => array(
+				'padding-top'    => 'button_padding_top',
+				'padding-right'  => 'button_padding_right',
+				'padding-bottom' => 'button_padding_bottom',
+				'padding-left'   => 'button_padding_left',
+			),
+		) );
+
+		FLBuilderCSS::rule( array(
+			'selector' => ':where(.fl-builder-content, .fl-page) :is(a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])):focus',
+			'props'    => array(
+				'outline-color'  => $settings->outlines_color,
+				'outline-style'  => $settings->outlines_style,
+				'outline-width'  => $settings->outlines_width . 'px',
+				'outline-offset' => $settings->outlines_offset . 'px',
 			),
 		) );
 

@@ -8,6 +8,14 @@
 final class FLBuilderUserTemplatesPostType {
 
 	/**
+	 * Option that records the version rewrite rules were last flushed for.
+	 *
+	 * @since 2.11
+	 * @var string
+	 */
+	const REWRITE_FLUSH_OPTION = '_fl_builder_rewrite_flush_version';
+
+	/**
 	 * Initialize hooks.
 	 *
 	 * @since 1.10
@@ -38,6 +46,9 @@ final class FLBuilderUserTemplatesPostType {
 			$menu_name = __( 'Builder', 'fl-builder' );
 		}
 
+		/**
+		 * Arguments passed to register_post_type when registering the user templates post type.
+		 */
 		$args = apply_filters( 'fl_builder_register_template_post_type_args', array(
 			'public'              => $admin_access && $can_edit ? true : false,
 			'labels'              => array(
@@ -169,11 +180,45 @@ final class FLBuilderUserTemplatesPostType {
 	 * @since 2.8
 	 */
 	public static function maybe_flush_rewrites() {
-		$stored = is_multisite() ? get_site_option( '_fl_builder_version' ) : get_option( '_fl_builder_version' );
-		if ( '{FL_BUILDER_VERSION}' !== FL_BUILDER_VERSION && FL_BUILDER_VERSION !== $stored ) {
-			error_log( 'BB: Flushed rules for version change' );
-			flush_rewrite_rules( true );
+		self::maybe_flush_rewrites_for_version( FL_BUILDER_VERSION );
+	}
+
+	/**
+	 * Flushes rewrite rules if they have not been flushed for this version yet.
+	 *
+	 * The marker is a blog level option because rewrite rules are per site: on a
+	 * network, every site needs its own flush after a version change. It is
+	 * deliberately not _fl_builder_version — that option is the migration gate for
+	 * FLBuilderUpdate::maybe_run(), which only writes it from network admin. Gating
+	 * this flush on it meant the two never agreed, so every admin_init reflushed
+	 * forever on multisite. See issue 5442.
+	 *
+	 * @since 2.11
+	 * @param string $version Builder version to flush for.
+	 * @return void
+	 */
+	public static function maybe_flush_rewrites_for_version( $version ) {
+		if ( '{FL_BUILDER_VERSION}' === $version ) {
+			return;
 		}
+
+		if ( get_option( self::REWRITE_FLUSH_OPTION ) === $version ) {
+			return;
+		}
+
+		// Claim the version before flushing so a burst of concurrent requests
+		// flushes once rather than once per request.
+		update_option( self::REWRITE_FLUSH_OPTION, $version );
+
+		// WP_TESTS_DOMAIN is defined by the wp-phpunit bootstrap (local or CI) —
+		// WP_DEBUG alone isn't enough to skip logging here since every WP core
+		// test run has it on by design, unrelated to this flush actually happening
+		// on a live site.
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG && ! defined( 'WP_TESTS_DOMAIN' ) ) {
+			error_log( 'BB: Flushed rules for version change' );
+		}
+
+		flush_rewrite_rules( true );
 	}
 }
 

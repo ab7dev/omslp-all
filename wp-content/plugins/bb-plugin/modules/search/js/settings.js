@@ -10,7 +10,7 @@
 
 			$( 'input[name=btn_bg_color]' ).on( 'change', this._previewButtonBackground );
 			$( 'select[name=layout]' ).on( 'change', $.proxy( this._toggleBtnSettings, this ) );
-			btnAlign.on( 'change', this._previewButtonAlign );
+			btnAlign.on( 'change', () => this._previewButtonAlign() );
 			icon.on( 'change', this._flipSettings );
 			this._toggleBtnSettings();
 			this._flipSettings();
@@ -52,7 +52,7 @@
 					return;
 				}
 
-				fields = btnToggles[i].fields.map(function(val, i){
+				fields = btnToggles[i].fields.map(function(val){
 					return '#fl-field-' + val;
 				});
 
@@ -65,21 +65,25 @@
 			}
 		},
 
-		_previewButtonAlign: function( e )
+		_previewButtonAlign: function()
 		{
 			var preview	 = FLBuilder.preview,
 				selector = preview.classes.node + ' .fl-search-form-wrap, ' + preview.classes.node + ' .fl-search-form-fields',
 				property = 'justify-content',
 				form     = $( '.fl-builder-settings:visible' ),
 				layout   = form.find( 'select[name=layout]' ).val(),
-				bgAlign  = form.find( 'input[name=btn_align]' ).val();
+				action   = form.find( 'select[name=btn_action]' ).val(),
+				align    = form.find( 'input[name=btn_align]' ).val();
 
 			if ( 'stacked' == layout ) {
 				selector = preview.classes.node + ' .fl-button-wrap';
 				property = 'text-align';
 			}
+			else if ( 'button' == layout && 'expand' == action ) {
+				selector += ', ' + preview.classes.node + ' .fl-search-form-fields form:has(.fl-button-wrap)';
+			}
 
-			preview.updateCSSRule( selector, property, bgAlign );
+			preview.updateCSSRule( selector, property, align );
 		},
 
 		_flipSettings: function() {

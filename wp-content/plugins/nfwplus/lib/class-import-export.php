@@ -59,7 +59,15 @@ class NinjaFirewall_ImpExp {
 		}
 
 		$nfw_options = json_decode( $nfw_options, true );
-		$nfw_rules   = json_decode( $rules, true );
+		if (! is_array( $nfw_options ) ) {
+			return sprintf( $err_msg, 4 );
+		}
+
+		$nfw_rules = json_decode( $rules, true );
+		if (! is_array( $nfw_rules ) ) {
+			return sprintf( $err_msg, 6 );
+		}
+
 		if (! empty( $bf ) ) {
 			$bf_conf = json_decode( $bf, true );
 		}
@@ -101,21 +109,14 @@ class NinjaFirewall_ImpExp {
 		}
 
 		/**
-		 * Dropins rules.
+		 * We clear the dropin rules (if any) and force NinjaFirewall to download
+		 * the last set of rules from the API server by decrementing its version.
 		 */
 		if ( isset( $nfw_rules['dropins'] ) ) {
-			if ( $nfw_rules['dropins'] == 'delete') {
-				if ( file_exists( NFW_LOG_DIR .'/nfwlog/dropins.php') ) {
-					@ unlink( NFW_LOG_DIR .'/nfwlog/dropins.php');
-				}
-			} else {
-				$dropins = base64_decode( $nfw_rules['dropins'], true );
-				if ( $dropins !== false ) {
-					@ file_put_contents( NFW_LOG_DIR .'/nfwlog/dropins.php', $dropins, LOCK_EX );
-				}
-			}
 			unset( $nfw_rules['dropins'] );
 		}
+		$nfw_options['rules_version']--;
+		$nfw_options['rules_version'] = (string) $nfw_options['rules_version'];
 
 		/**
 		 * Check whether it is from the WP+ or WP edn.
@@ -222,16 +223,21 @@ class NinjaFirewall_ImpExp {
 		/**
 		 * If brute force protection is enabled, we need to create a new config file.
 		 */
-		$nfwbfd_log = NFW_LOG_DIR .'/nfwlog/cache/bf_conf.php';
+		$nfwbfd_log = NFW_LOG_DIR .'/nfwlog/cache/login_protection.php';
+
 		if (! empty( $bf_conf ) ) {
-			$fh = fopen( $nfwbfd_log, 'w');
-			fwrite( $fh, $bf_conf );
-			fclose( $fh );
+			// $bf_conf is a string, not an array
+			$res = NinjaFirewall_bruteforce::verify( $bf_conf );
+			if (! empty( $res ) ) {
+				$fh = fopen( $nfwbfd_log, 'w');
+				fwrite( $fh, $bf_conf );
+				fclose( $fh );
+			}
 		} else {
 		/*
-		 * ...or delete the current one, if any.
+		 * or delete the current one, if any.
 		 */
-			if ( file_exists( $nfwbfd_log ) ) {
+			if ( is_file( $nfwbfd_log ) ) {
 				unlink( $nfwbfd_log );
 			}
 		}
@@ -302,7 +308,7 @@ class NinjaFirewall_ImpExp {
 		$nfw_rules   = nfw_get_option('nfw_rules');
 
 		/**
-		 * Check nonce unless the request comes from WP CLI.
+		 * Check nonce unless the request comes from WP CLI (WP+ Edition only).
 		 */
 		if (! defined('WP_CLI') ) {
 			if ( empty( $_POST['nfwnonce'] ) ||
@@ -315,21 +321,13 @@ class NinjaFirewall_ImpExp {
 		/**
 		 * Export login protection if it exists too.
 		 */
-		$nfwbfd_log = NFW_LOG_DIR .'/nfwlog/cache/bf_conf.php';
+		$nfwbfd_log = NFW_LOG_DIR .'/nfwlog/cache/login_protection.php';
 		if ( file_exists( $nfwbfd_log ) ) {
 			$bd_data = json_encode( file_get_contents( $nfwbfd_log ) );
 		} else {
 			$bd_data = '';
 		}
 
-		/**
-		 * Dropins, if applicable.
-		 */
-		if ( file_exists( NFW_LOG_DIR .'/nfwlog/dropins.php') ) {
-			$nfw_rules['dropins'] = base64_encode(
-				file_get_contents( NFW_LOG_DIR .'/nfwlog/dropins.php')
-			);
-		}
 		$data = json_encode( $nfw_options ) ."\n:-:\n". json_encode( $nfw_rules ) ."\n:-:\n$bd_data";
 
 		/**

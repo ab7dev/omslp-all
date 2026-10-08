@@ -669,61 +669,12 @@ final class FLThemeBuilderFieldConnections {
 			$settings = self::set_background_setting( $settings, $key, $value );
 		} elseif ( 'photo' === $data->field ) {
 			$settings = self::set_photo_setting( $settings, $key, $value );
-		} elseif ( 'color' === $data->field ) {
-			$settings = self::set_color_setting( $settings, $key, $value );
+		} elseif ( 'icon' === $data->field ) {
+			$settings = self::set_icon_setting( $settings, $key, $value );
 		} elseif ( strstr( $key, '.' ) ) {
 			$settings = self::set_compound_setting( $settings, $key, $value );
 		} else {
 			$settings->{ $key } = $value;
-		}
-
-		return $settings;
-	}
-
-	/**
-	 * Sets the value for color connection fields.
-	 *
-	 * @since 2.10
-	 * @param object $settings The settings object for a node.
-	 * @param string $key The setting key.
-	 * @param mixed  $value The value to set.
-	 * @return object
-	 */
-	static public function set_color_setting( $settings, $key, $value ) {
-
-		// Compound paths (gradient stops, etc.) must traverse via the
-		// compound setter — assigning a dotted key as a literal property
-		// never reaches the nested target and the stored color is lost.
-		if ( strstr( $key, '.' ) ) {
-			return self::set_compound_setting( $settings, $key, $value );
-		}
-
-		// If not a component or missing template data, set the value and bail.
-		if ( empty( $settings->dynamic_node_settings ) && empty( $settings->dynamic_node_settings->template_post_id ) ) {
-			$settings->{ $key } = $value;
-			return $settings;
-		}
-
-		$template_post_id = $settings->dynamic_node_settings->template_post_id;
-		$template_data    = FLBuilderModel::get_layout_data( 'published', $template_post_id );
-
-		// If not a module component or we don't have exactly one node in the template data, set the value and bail.
-		if ( count( $template_data ) !== 1 ) {
-			$settings->{ $key } = $value;
-			return $settings;
-		}
-
-		// Get Color value from the single node in the template data and set it on the settings.
-		$target_node_id = array_key_first( $template_data );
-		$target_node = $template_data[ $target_node_id ] ?? null;
-
-		if ( ! empty( $target_node ) && isset( $target_node->settings->connections[ $key ] ) ) {
-			$connection_data = $target_node->settings->connections[ $key ] ?? null;
-			if ( ! empty( $connection_data ) && is_object( $connection_data ) ) {
-				$field_value        = FLPageData::get_value( $connection_data->object, $connection_data->property, $connection_data->settings );
-				$settings->{ $key } = $field_value;
-				return $settings;
-			}
 		}
 
 		return $settings;
@@ -748,6 +699,30 @@ final class FLThemeBuilderFieldConnections {
 			$settings->{ $key . '_src' } = $settings->{ $key };
 			$settings->{ $key }          = -1;
 		}
+
+		return $settings;
+	}
+
+	/**
+	 * Sets the value for icon connection fields.
+	 *
+	 * @since 2.10
+	 * @param object $settings The settings object for a node.
+	 * @param string $key The setting key.
+	 * @param mixed  $value The value to set.
+	 * @return object
+	 */
+	static public function set_icon_setting( $settings, $key, $value ) {
+		if ( is_array( $value ) && isset( $value['value'] ) ) {
+			$icon_value = sanitize_html_class( $value['value'] );
+			if ( isset( $value['type'] ) && 'dashicons' === $value['type'] ) {
+				$value = 'dashicons ' . $icon_value;
+			} else {
+				$value = $icon_value;
+			}
+		}
+
+		$settings->{ $key } = is_string( $value ) ? $value : '';
 
 		return $settings;
 	}
@@ -934,6 +909,8 @@ final class FLThemeBuilderFieldConnections {
 	static public function parse_shortcode( $attrs ) {
 		global $post;
 
+		$post_id = false;
+
 		if ( ! isset( $attrs ) || ! isset( $attrs[0] ) ) {
 			return;
 		}
@@ -950,6 +927,10 @@ final class FLThemeBuilderFieldConnections {
 			$settings = (object) $attrs;
 		}
 
+		if ( isset( $settings->post_id ) ) {
+			$post_id = $settings->post_id;
+		}
+
 		$property = FLPageData::get_property( $type[0], $type[1] );
 
 		if ( ! $property ) {
@@ -958,8 +939,16 @@ final class FLThemeBuilderFieldConnections {
 			return $property['placeholder'];
 		}
 
+		if ( $post_id && is_numeric( $post_id ) ) {
+			$original = $post;
+			$post     = get_post( $post_id );
+		}
+
 		$content = FLPageData::get_value( $type[0], $type[1], $settings );
 
+		if ( $post_id ) {
+			$post = $original;
+		}
 		// if we have content then return it. Treat '', null, and bool false
 		// as "no value" (some connection getters and the 'contains' compare
 		// can return false); keep "0" rendering.

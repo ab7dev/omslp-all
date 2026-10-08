@@ -431,7 +431,7 @@ function nf_sub_log_options($max_lines) {
 	<?php
 
 	wp_nonce_field('settings_log', 'nfwnonce', 0);
-	if ( empty( $nfw_options['clogs_pubkey'] ) || ! preg_match( '/^[a-f0-9]{40}:(?:[a-f0-9:.]{3,39}|\*)$/', $nfw_options['clogs_pubkey'] ) ) {
+	if ( empty( $nfw_options['clogs_pubkey'] ) || ! preg_match( '/^[a-f0-9]{40,64}:(?:[a-f0-9:.]{3,39}|\*)$/', $nfw_options['clogs_pubkey'] ) ) {
 		$nfw_options['clogs_pubkey'] = '';
 	}
 
@@ -602,7 +602,7 @@ function nf_sub_log_save_options( $nfw_options ) {
 function nf_sub_log_save_pubkey( $nfw_options ) {
 
 	if ( empty( $_POST['nfw_options']['clogs_pubkey'] ) ||
-		! preg_match( '/^[a-f0-9]{40}:(?:[a-f0-9:.]{3,39}|\*)$/', $_POST['nfw_options']['clogs_pubkey'] ) ) {
+		! preg_match( '/^[a-f0-9]{40,64}:(?:[a-f0-9:.]{3,39}|\*)$/', $_POST['nfw_options']['clogs_pubkey'] ) ) {
 		$nfw_options['clogs_pubkey'] = '';
 	} else {
 		$nfw_options['clogs_pubkey'] = $_POST['nfw_options']['clogs_pubkey'];
@@ -671,11 +671,11 @@ function nf_sub_log_read_remote( $url, $nfw_options, $max_lines, $sorting ) {
 			'method' => 'POST',
 			'timeout' => 30,
 			'redirection' => 3,
-			'body' => array( 'clogs_req' => base64_decode( $nfw_options['clogs_seckey'] ) )
+			'body' => ['clogs_req' => base64_decode( $nfw_options['clogs_seckey'] ) ]
 		)
 	);
 
-	$data = array();
+	$data = [];
 	$data['type'] = 'remote';
 
 	if ( is_wp_error( $response ) ) {

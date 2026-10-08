@@ -125,12 +125,21 @@ class FLNumbersModule extends FLBuilderModule {
 			'locale'       => $locale,
 		) );
 
-		echo '<div class="fl-number-string">' . $prefix . '<span class="fl-number-int" ' . $number_data . '>' . $nojs . '</span>' . $suffix . '</div>';
+		// v1: no span wrappers for prefix/suffix
+		if ( 1 === $this->version ) {
+			echo '<div class="fl-number-string">' . $prefix . '<span class="fl-number-int" ' . $number_data . '>' . $nojs . '</span>' . $suffix . '</div>';
+		} else {
+			// v2+: span wrappers for prefix/suffix
+			echo '<div class="fl-number-string"><span class="fl-number-prefix">' . $prefix . '</span><span class="fl-number-int" ' . $number_data . '>' . $nojs . '</span><span class="fl-number-suffix">' . $suffix . '</span></div>';
+		}
 	}
 
 	public function render_circle_bar() {
 
-		$width  = ! empty( $this->settings->circle_width ) ? $this->settings->circle_width : 100;
+		// Cast to a number so the value can never break out of the SVG
+		// viewBox attribute below (stored settings are only tag-stripped, not
+		// attribute-safe). CVE-2026-15242.
+		$width  = ! empty( $this->settings->circle_width ) ? (float) $this->settings->circle_width : 100;
 		$pos    = ( $width / 2 );
 		$radius = $pos - 10;
 		$dash   = number_format( ( ( M_PI * 2 ) * $radius ), 2, '.', '' );

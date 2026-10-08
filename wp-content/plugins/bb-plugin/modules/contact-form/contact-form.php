@@ -238,6 +238,9 @@ class FLContactFormModule extends FLBuilderModule {
 			$fl_contact_from_name  = ( isset( $_POST['name'] ) ? stripslashes( $_POST['name'] ) : '' );
 
 			if ( isset( $_POST['name'] ) ) {
+				/**
+				 * The "from" email address used when sending contact form submissions.
+				 */
 				$site_name = apply_filters( 'fl_contact_form_from', $site_name, $_POST['name'] );
 			}
 
@@ -769,6 +772,7 @@ FLBuilder::register_module('FLContactFormModule', array(
 						'type'        => 'icon',
 						'label'       => __( 'Icon', 'fl-builder' ),
 						'show_remove' => true,
+						'connections' => array( 'icon' ),
 						'show'        => array(
 							'fields' => array( 'btn_icon_position', 'btn_icon_animation' ),
 						),

@@ -12,6 +12,7 @@
 			auto : true,
 			adaptiveHeight: true,
 			ariaLive: false,
+			infiniteLoop: <?php echo $module->is_loop_enabled(); ?>,
 			pause : <?php echo esc_js( $settings->pause * 1000 ); ?>,
 			mode : '<?php echo esc_js( $settings->transition ); ?>',
 			autoDirection: '<?php echo esc_js( $settings->direction ); ?>',
@@ -29,16 +30,20 @@
 				$('.fl-node-<?php echo $id; ?> .fl-slider-next <?php echo ( 1 === $module->version ) ? 'a' : 'button'; ?>').attr('aria-label', '<?php _e( 'Next testimonial.', 'fl-builder' ); ?>' );
 				$('.fl-node-<?php echo $id; ?> .fl-slider-prev <?php echo ( 1 === $module->version ) ? 'a' : 'button'; ?>').attr('aria-label', '<?php _e( 'Previous testimonial.', 'fl-builder' ); ?>' );
 			},
-			onSliderResize: function(currentIndex){
-				this.working = false;
-				this.reloadSlider();
-			}
+		onSliderResize: function(currentIndex){
+			this.working = false;
+			$('.fl-node-<?php echo $id; ?> .fl-slider-next').empty();
+			$('.fl-node-<?php echo $id; ?> .fl-slider-prev').empty();
+			this.reloadSlider();
+		}
 		});
 
 		// Fix slider width not right when column is resized/deleted or when in responsive editing mode.
 		if ( 'undefined' !== typeof( FLBuilder ) ) {
 			var reloadTestimonials = function() {
 				setTimeout( function(){
+					$('.fl-node-<?php echo $id; ?> .fl-slider-next').empty();
+					$('.fl-node-<?php echo $id; ?> .fl-slider-prev').empty();
 					testimonials.reloadSlider();
 				}, 50 );
 			}

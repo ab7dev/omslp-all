@@ -244,6 +244,8 @@ FLBuilder::register_module('FLWooCommerceModule', array(
 							'date'       => __( 'Date', 'fl-builder' ),
 							'price'      => __( 'Price', 'fl-builder' ),
 							'id'         => __( 'Product ID', 'fl-builder' ),
+							'title'      => __( 'Product Title', 'fl-builder' ),
+							'rand'       => __( ' Random', 'fl-builder' ),
 						),
 					),
 					'order'           => array(

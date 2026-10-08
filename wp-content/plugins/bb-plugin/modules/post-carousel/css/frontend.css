@@ -11,10 +11,6 @@ body.rtl .fl-post-carousel-post {
 	flex-grow: 1;
 	place-self: stretch;
 }
-.fl-module-post-carousel .bx-wrapper {
-	max-width: 100% !important;
-	margin: 0 auto 40px;
-}
 .fl-module-post-carousel .bx-controls {
 	width: 100%;
 	position: absolute;
@@ -36,9 +32,6 @@ body.rtl .fl-post-carousel-post {
 	all: unset;
 	cursor: pointer;
 	position: absolute;
-}
-.fl-post-carousel-navigation button:focus{
-	outline: 1px auto -webkit-focus-ring-color;
 }
 .fl-post-carousel-navigation a,
 .fl-post-carousel-navigation button{
@@ -72,7 +65,8 @@ body.rtl .fl-post-carousel-post {
 .fl-post-carousel-navigation button.disabled,
 .bx-controls a.disabled,
 .bx-controls button.disabled {
-	pointer-events: none;
+	cursor: not-allowed;
+	opacity: .2;
 }
 
 /*Module styles =======================================*/

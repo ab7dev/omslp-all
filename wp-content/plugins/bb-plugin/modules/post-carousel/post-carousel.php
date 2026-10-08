@@ -239,6 +239,9 @@ class FLPostCarouselModule extends FLBuilderModule {
 			$classes[] = 'fl-post-no-thumb';
 		}
 
+		/**
+		 * Array of CSS classes added to the post carousel module wrapper element.
+		 */
 		post_class( apply_filters( 'fl_builder_post_carousel_classes', $classes, $settings ) );
 	}
 }
@@ -475,8 +478,10 @@ FLBuilder::register_module('FLPostCarouselModule', array(
 						),
 					),
 					'post_icon'          => array(
-						'type'  => 'icon',
-						'label' => __( 'Post Icon', 'fl-builder' ),
+						'type'               => 'icon',
+						'label'              => __( 'Post Icon', 'fl-builder' ),
+						'show_extra_classes' => true,
+						'connections'        => array( 'icon' ),
 					),
 					'post_icon_position' => array(
 						'type'    => 'select',
@@ -881,7 +886,7 @@ FLBuilder::register_module('FLPostCarouselModule', array(
 		),
 	),
 	'content' => array(
-		'title' => __( 'Content', 'fl-builder' ),
+		'title' => __( 'Query', 'fl-builder' ),
 		'file'  => FL_BUILDER_DIR . 'includes/loop-settings.php',
 	),
 ));

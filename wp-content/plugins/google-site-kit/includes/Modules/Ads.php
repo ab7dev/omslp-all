@@ -6,6 +6,8 @@
  * @copyright 2024 Google LLC
  * @license   https://www.apache.org/licenses/LICENSE-2.0 Apache License 2.0
  * @link      https://sitekit.withgoogle.com
+ *
+ * phpcs:disable PHPCS.Commenting.RequireDocTagDescription -- Pre-existing violations; tracked for follow-up cleanup.
  */
 
 namespace Google\Site_Kit\Modules;
@@ -16,6 +18,7 @@ use Google\Site_Kit\Core\Assets\Assets;
 use Google\Site_Kit\Core\Assets\Script;
 use Google\Site_Kit\Core\Assets\Script_Data;
 use Google\Site_Kit\Core\Authentication\Authentication;
+use Google\Site_Kit\Core\Intents\Intents;
 use Google\Site_Kit\Core\Modules\Module;
 use Google\Site_Kit\Core\Modules\Module_Settings;
 use Google\Site_Kit\Core\Modules\Module_With_Assets;
@@ -35,6 +38,7 @@ use Google\Site_Kit\Core\Site_Health\Debug_Data;
 use Google\Site_Kit\Core\Storage\Options;
 use Google\Site_Kit\Core\Storage\User_Options;
 use Google\Site_Kit\Core\Util\Plugin_Status;
+use Google\Site_Kit\Modules\Ads\Ads_Conversion_Tracking_Intent;
 use Google\Site_Kit\Modules\Ads\PAX_Config;
 use Google\Site_Kit\Modules\Ads\Settings;
 use Google\Site_Kit\Modules\Ads\Has_Tag_Guard;
@@ -47,7 +51,6 @@ use Google\Site_Kit\Core\Util\URL;
 use Google\Site_Kit\Modules\Ads\AMP_Tag;
 use Google\Site_Kit\Core\Conversion_Tracking\Conversion_Tracking;
 use Google\Site_Kit\Core\Modules\Module_With_Inline_Data;
-use Google\Site_Kit\Core\Modules\Module_With_Inline_Data_Trait;
 use Google\Site_Kit\Core\Tracking\Feature_Metrics_Trait;
 use Google\Site_Kit\Core\Tracking\Provides_Feature_Metrics;
 
@@ -64,7 +67,6 @@ final class Ads extends Module implements Module_With_Inline_Data, Module_With_A
 	use Module_With_Settings_Trait;
 	use Module_With_Tag_Trait;
 	use Method_Proxy_Trait;
-	use Module_With_Inline_Data_Trait;
 	use Feature_Metrics_Trait;
 
 	/**
@@ -107,7 +109,6 @@ final class Ads extends Module implements Module_With_Inline_Data, Module_With_A
 	 */
 	public function register() {
 		$this->register_scopes_hook();
-		$this->register_inline_data();
 		$this->register_feature_metrics();
 
 		// Ads tag placement logic.
@@ -129,6 +130,7 @@ final class Ads extends Module implements Module_With_Inline_Data, Module_With_A
 	 */
 	public function register_persistent() {
 		add_filter( 'googlesitekit_inline_modules_data', fn ( $data ) => $this->persistent_inline_modules_data( $data ) );
+		add_action( 'googlesitekit_intents_register', $this->get_method_proxy( 'register_conversion_tracking_intent' ) );
 	}
 
 	/**
@@ -162,6 +164,7 @@ final class Ads extends Module implements Module_With_Inline_Data, Module_With_A
 						'googlesitekit-vendor',
 						'googlesitekit-api',
 						'googlesitekit-data',
+						'googlesitekit-feature-discovery',
 						'googlesitekit-modules',
 						'googlesitekit-notifications',
 						'googlesitekit-datastore-site',
@@ -223,6 +226,17 @@ final class Ads extends Module implements Module_With_Inline_Data, Module_With_A
 	}
 
 	/**
+	 * Registers the intent to set up Ads conversion tracking.
+	 *
+	 * @since 1.188.0
+	 *
+	 * @param Intents $intents Intents registry.
+	 */
+	protected function register_conversion_tracking_intent( Intents $intents ) {
+		$intents->register_intent( new Ads_Conversion_Tracking_Intent() );
+	}
+
+	/**
 	 * Populates module data needed independent of Ads module activation.
 	 *
 	 * @since 1.148.0
@@ -231,8 +245,8 @@ final class Ads extends Module implements Module_With_Inline_Data, Module_With_A
 	 * @return array Inline modules data.
 	 */
 	protected function persistent_inline_modules_data( $modules_data ) {
-		if ( empty( $modules_data['ads'] ) ) {
-			$modules_data['ads'] = array();
+		if ( empty( $modules_data[ self::MODULE_SLUG ] ) ) {
+			$modules_data[ self::MODULE_SLUG ] = array();
 		}
 
 		$active_wc  = class_exists( 'WooCommerce' );
@@ -240,7 +254,7 @@ final class Ads extends Module implements Module_With_Inline_Data, Module_With_A
 
 		$gla_ads_conversion_action = get_option( 'gla_ads_conversion_action' );
 
-		$modules_data['ads']['plugins'] = array(
+		$modules_data[ self::MODULE_SLUG ]['plugins'] = array(
 			'woocommerce'             => array(
 				'active'    => $active_wc,
 				'installed' => $active_wc || Plugin_Status::is_plugin_installed( 'woocommerce/woocommerce.php' ),
@@ -402,18 +416,16 @@ final class Ads extends Module implements Module_With_Inline_Data, Module_With_A
 	 *
 	 * @since 1.158.0
 	 * @since 1.160.0 Include $modules_data parameter to match the interface.
+	 * @since 1.181.0 Remove $modules_data parameter as per updated interface.
 	 *
-	 * @param array $modules_data Inline modules data.
 	 * @return array An array of the module's inline data.
 	 */
-	public function get_inline_data( $modules_data ) {
-		if ( empty( $modules_data['ads'] ) ) {
-			$modules_data['ads'] = array();
-		}
+	public function get_inline_data() {
+		$inline_data = array();
 
-		$modules_data[ self::MODULE_SLUG ]['supportedConversionEvents'] = $this->conversion_tracking->get_supported_conversion_events();
+		$inline_data['supportedConversionEvents'] = $this->conversion_tracking->get_supported_conversion_events();
 
-		return $modules_data;
+		return $inline_data;
 	}
 
 	/**

@@ -110,7 +110,8 @@ class NinjaFirewall_session {
 				'path'		=> '/',
 				'domain'		=> '',
 				'secure'		=> self::is_ssl(),
-				'httponly'	=> true
+				'httponly'	=> true,
+				'samesite' => 'Lax',
 			] );
 		}
 		return true;

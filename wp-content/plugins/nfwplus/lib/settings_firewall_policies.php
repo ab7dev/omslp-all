@@ -492,7 +492,7 @@ wp_nonce_field('policies_save', 'nfwnonce', 0);
 				<p><label><input type="checkbox"<?php disabled($no_xmlrpc, 1) ?> name="nfw_options[no_xmlrpc_multi]" value="1"<?php checked( $no_xmlrpc_multi, 1 ) ?>>&nbsp;<?php _e('Block <code>system.multicall</code> method', 'nfwplus') ?></label> <font color="red">*</font></p>
 				<p><label><input type="checkbox"<?php disabled($no_xmlrpc, 1) ?> name="nfw_options[no_xmlrpc_pingback]" value="1"<?php checked( $no_xmlrpc_pingback, 1 ) ?>>&nbsp;<?php _e('Block Pingbacks', 'nfwplus') ?></label></p>
 				<br />
-				<p class="description" style="font-size:14px"><font color="red">*</font> <?php _e('Disabling access to the REST or XML-RPC API may break some functionality on your blog, its themes or plugins (e.g., Gutenberg editor, Jetpack, Contact Form 7 etc).', 'nfwplus') ?></p>
+				<p class="description" style="font-size:14px"><font color="red">*</font> <?php _e('Disabling access to the REST or XML-RPC API may break some functionality on your blog, its themes or plugins (e.g., Block editor, Jetpack, WooCommerce, Contact Form 7 etc).', 'nfwplus') ?></p>
 			</td>
 		</tr>
 
@@ -1362,10 +1362,16 @@ function nf_sub_policies_save() {
 				}
 				list( $key, $value ) = explode(':', $header, 2 );
 				/**
-				 * Lowercase key name.
+				 * Lowercase key name, trim and remove unwanted characters
+				 * to prevent poorly formatted headers to crash the site (e.g., HTTP/3).
 				 */
 				$key		= strtolower( trim( $key ) );
 				$value	= trim( $value );
+				if (! preg_match('/^[!#$%&\'*+\-.^_`|~0-9A-Za-z]+$/', $key )
+					|| preg_match('/[\r\n]/', $key )	|| preg_match('/[\r\n]/', $value ) ) {
+
+					continue;
+				}
 				if (! empty( $key ) && ! empty( $value ) ) {
 					$custom_headers[ $key ] = $value;
 				}

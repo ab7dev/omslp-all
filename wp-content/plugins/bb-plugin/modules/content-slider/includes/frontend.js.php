@@ -40,6 +40,10 @@
 			infiniteLoop: <?php echo $module->is_loop_enabled(); ?>,
 			pager: dots && false === sliderIndex ? true : false,
 			video: true,
+			<?php if ( $settings->arrows ) : ?>
+				prevSelector: '.fl-node-<?php echo $id; ?> .slider-prev',
+				nextSelector: '.fl-node-<?php echo $id; ?> .slider-next',
+			<?php endif; ?>
 			onSliderLoad: function(currentIndex) {
 				// display slider after loading if editing a specific one
 				if (false !== sliderIndex) {

@@ -51,7 +51,7 @@ if ( class_exists( 'WP_Theme_JSON_Resolver' ) ) {
 				'group'  => 'core',
 				'type'   => 'color',
 				'getter' => function () use ( $color ) {
-					return 'var(--wp--preset--color--' . $color['slug'] . ')';
+					return 'var(--wp--preset--color--' . _wp_to_kebab_case( $color['slug'] ) . ')';
 				},
 			) );
 		}
@@ -70,7 +70,7 @@ if ( class_exists( 'WP_Theme_JSON_Resolver' ) ) {
 				'group'  => 'theme',
 				'type'   => 'color',
 				'getter' => function () use ( $color ) {
-					return 'var(--wp--preset--color--' . $color['slug'] . ')';
+					return 'var(--wp--preset--color--' . _wp_to_kebab_case( $color['slug'] ) . ')';
 				},
 			) );
 		}

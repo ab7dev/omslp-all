@@ -84,6 +84,9 @@ class FLLoginFormModule extends FLBuilderModule {
 					'url' => ( 'url' === $settings->redirect_to ) ? ( empty( $settings->success_url ) ? 'current' : $settings->success_url ) : ( 'message' === $settings->redirect_to ? 'current' : $settings->redirect_to ),
 				);
 
+				/**
+				 * Fires after a login form submission has been processed.
+				 */
 				do_action( 'fl_builder_login_form_submission_complete', $settings, $password, $name, $template_id, $post_id );
 
 				wp_send_json_success( $args );
@@ -331,6 +334,7 @@ FLBuilder::register_module( 'FLLoginFormModule', array(
 						'type'        => 'icon',
 						'label'       => __( 'Icon', 'fl-builder' ),
 						'show_remove' => true,
+						'connections' => array( 'icon' ),
 						'show'        => array(
 							'fields'   => array( 'un_color' ),
 							'sections' => array( 'icon' ),
@@ -363,6 +367,7 @@ FLBuilder::register_module( 'FLLoginFormModule', array(
 						'type'        => 'icon',
 						'label'       => __( 'Icon', 'fl-builder' ),
 						'show_remove' => true,
+						'connections' => array( 'icon' ),
 						'show'        => array(
 							'fields' => array( 'pw_color' ),
 						),
@@ -654,6 +659,7 @@ FLBuilder::register_module( 'FLLoginFormModule', array(
 						'type'        => 'icon',
 						'label'       => __( 'Button Icon', 'fl-builder' ),
 						'show_remove' => true,
+						'connections' => array( 'icon' ),
 						'show'        => array(
 							'fields' => array( 'btn_icon_position', 'btn_icon_animation' ),
 						),
@@ -811,6 +817,7 @@ FLBuilder::register_module( 'FLLoginFormModule', array(
 						'type'        => 'icon',
 						'label'       => __( 'Button Icon', 'fl-builder' ),
 						'show_remove' => true,
+						'connections' => array( 'icon' ),
 						'show'        => array(
 							'fields' => array( 'lo_btn_icon_position', 'lo_btn_icon_animation' ),
 						),

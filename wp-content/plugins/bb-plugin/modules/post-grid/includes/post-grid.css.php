@@ -72,7 +72,7 @@ FLBuilderCSS::typography_field_rule( array(
 <?php if ( ! empty( $settings->content_color ) ) : ?>
 .fl-builder-content .fl-node-<?php echo $id; ?> .fl-post-grid-post .fl-post-grid-content,
 .fl-builder-content .fl-node-<?php echo $id; ?> .fl-post-grid-post .fl-post-grid-content p,
-.fl-builder-content .fl-node-<?php echo $id; ?> .fl-post-grid-post .fl-post-grid-content .fl-post-grid-more,
+.fl-builder-content .fl-node-<?php echo $id; ?> .fl-post-grid-post .fl-post-grid-content a.fl-post-grid-more,
 .fl-builder-content .fl-node-<?php echo $id; ?> .fl-builder-pagination ul.page-numbers li span,
 .fl-builder-content .fl-node-<?php echo $id; ?> .fl-builder-pagination ul.page-numbers li a {
 	color: <?php echo FLBuilderColor::hex_or_rgb( $settings->content_color ); ?>;
@@ -87,14 +87,14 @@ FLBuilderCSS::typography_field_rule( array(
 <?php endif; ?>
 
 <?php if ( ! empty( $settings->link_color ) ) : ?>
-.fl-builder-content .fl-node-<?php echo $id; ?> .fl-post-grid-content a,
+.fl-builder-content .fl-node-<?php echo $id; ?> .fl-post-grid-post .fl-post-grid-content a.fl-post-grid-more,
 .fl-builder-content .fl-node-<?php echo $id; ?> .page-numbers {
 	color: <?php echo FLBuilderColor::hex_or_rgb( $settings->link_color ); ?>;
 }
 <?php endif; ?>
 
 <?php if ( ! empty( $settings->link_hover_color ) ) : ?>
-.fl-builder-content .fl-node-<?php echo $id; ?> .fl-post-grid-content a:hover,
+.fl-builder-content .fl-node-<?php echo $id; ?> .fl-post-grid-post .fl-post-grid-content a.fl-post-grid-more:hover,
 .fl-builder-content .fl-node-<?php echo $id; ?> .page-numbers:hover {
 	color: <?php echo FLBuilderColor::hex_or_rgb( $settings->link_hover_color ); ?>;
 }

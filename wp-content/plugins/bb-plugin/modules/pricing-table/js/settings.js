@@ -52,7 +52,6 @@
 
 		init: function () {
 			var form 				= $('.fl-builder-settings[data-type=pricing_column_form]'),
-				icon 				= form.find('input[name=btn_icon]'),
 				moduleSettingsForm 	= $('form.fl-builder-pricing-table-settings'),
 				featuresSection		= $( '#fl-builder-settings-section-features' ),
 				featureToggleButton	= '.fl-builder-price-feature-toggle-button',
@@ -67,9 +66,15 @@
 			}
 
 			featuresSection.on('click', featureToggleButton, this._togglePricesFeaturesClicked);
-			icon.on('change', this._flipSettings(form));
-			this._flipSettings( form );
 			this._toggleFields( form, moduleSettingsForm );
+
+			form.find('input[name=button_url_yearly_used]').on('change', function() {
+				if ( 'yes' === $( this ).val() ) {
+					$('#fl-field-button_url_yearly').show();
+				} else {
+					$('#fl-field-button_url_yearly').hide();
+				}
+			});
 		},
 
 		_toggleFields: function (form, moduleSettingsForm ) {
@@ -85,16 +90,47 @@
 				$('#fl-field-duration').show();
 				$('#fl-field-price_option_1').hide();
 				$('#fl-field-price_option_2').hide();
+				$('#fl-field-button_url_yearly_used').hide();
+				$('#fl-field-button_url_yearly').hide();
+				$('#fl-field-price_term_color').hide();
+				$('#fl-field-price_term_typography').hide();
+				$('#fl-field-price_term_1').hide();
+				$('#fl-field-price_term_2').hide();
 			} else if ('yes' === billingOptions ) {
+				var buttonUrlYearlyUsed = form.find('input[name=button_url_yearly_used]').val();
 				$('#fl-field-duration').hide();
 				$('#fl-field-price_option_1').show();
 				$('#fl-field-price_option_2').show();
+				if ( 'yes' === buttonUrlYearlyUsed ) {
+					$('#fl-field-button_url_yearly').show();
+				} else {
+					$('#fl-field-button_url_yearly').hide();
+				}
+				$('#fl-field-price_term_color').show();
+				$('#fl-field-price_term_typography').show();
+				$('#fl-field-price_term_1').show();
+				$('#fl-field-price_term_2').show();
 
 				firstOptionText = '' === firstOptionText ? 'Monthly' : firstOptionText;
 				secondOptionText = '' === secondOptionText ? 'Yearly' : secondOptionText;
 
 				$(billingLabel1).text( firstOptionText );
 				$(billingLabel2).text( secondOptionText );
+
+				// Update button_url_yearly field label to use the user-entered billing option 2 text.
+				var $yearlyUrlLabel = $( '#fl-field-button_url_yearly' ).find( 'label' ).first();
+				var $yearlyUrlHelpTip = $yearlyUrlLabel.find( '.fl-help-tip' ).detach();
+				$yearlyUrlLabel.text( 'Button URL (' + secondOptionText + ')' );
+				if ( $yearlyUrlHelpTip.length ) {
+					$yearlyUrlHelpTip.attr( 'title', 'Used for the ' + secondOptionText + ' billing option.' );
+					$yearlyUrlLabel.append( $yearlyUrlHelpTip );
+				}
+
+				// Update Separate Billing Option URLs help tooltip to use the user-entered billing option 2 text.
+				$( '#fl-field-button_url_yearly_used .fl-help-tip' ).attr(
+					'title',
+					'If set to "Yes", the ' + secondOptionText + ' billing option will use a different URL.'
+				);
 			}
 
 			// If using Standard Border, hide the Box Border field ( ID = 'fl-field-background' ).
@@ -102,18 +138,6 @@
 				$('#fl-field-background').hide();
 			} else {
 				$('#fl-field-background').show();
-			}
-		},
-
-		_flipSettings: function( form ) {
-			var icon = form.find( 'input[name=btn_icon]' );
-
-			if ( icon.val() && -1 !== icon.val().indexOf( 'fad fa') ) {
-				$('#fl-field-btn_duo_color1').show();
-				$('#fl-field-btn_duo_color2').show();
-			} else {
-				$('#fl-field-btn_duo_color1').hide();
-				$('#fl-field-btn_duo_color2').hide();
 			}
 		},
 

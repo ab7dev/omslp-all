@@ -13,14 +13,17 @@ class FLReusableBlockModule extends FLBuilderModule {
 	 */
 	public function __construct() {
 		parent::__construct( array(
-			'name'            => __( 'WordPress Pattern', 'fl-builder' ),
-			'description'     => __( 'Display a WordPress Pattern.', 'fl-builder' ),
-			'group'           => __( 'WordPress Patterns', 'fl-builder' ),
-			'category'        => __( 'WordPress Patterns', 'fl-builder' ),
-			'icon'            => 'layout.svg',
-			'editor_export'   => true,
-			'partial_refresh' => true,
-			'enabled'         => false, // We use aliases instead.
+			'name'               => __( 'WordPress Pattern', 'fl-builder' ),
+			'description'        => __( 'Display a WordPress Pattern.', 'fl-builder' ),
+			'group'              => __( 'WordPress Patterns', 'fl-builder' ),
+			'category'           => __( 'WordPress Patterns', 'fl-builder' ),
+			'icon'               => 'layout.svg',
+			'editor_export'      => true,
+			'partial_refresh'    => true,
+			'enabled'            => false, // We use aliases instead.
+			// Renders arbitrary block output that can contain untrusted user
+			// data; do not run its shortcodes through the layout pass.
+			'renders_shortcodes' => false,
 		) );
 	}
 
@@ -62,10 +65,20 @@ FLBuilder::register_module( 'FLReusableBlockModule', array(
 			'general' => array(
 				'title'  => '',
 				'fields' => array(
-					'block_id' => array(
+					'block_id'          => array(
 						'type'    => 'select',
 						'label'   => __( 'WordPress Pattern', 'fl-builder' ),
 						'options' => 'FLReusableBlockModule::get_options',
+					),
+					'render_shortcodes' => array(
+						'type'    => 'select',
+						'label'   => __( 'Render Shortcodes', 'fl-builder' ),
+						'default' => 'no',
+						'options' => array(
+							'no'  => __( 'No (Recommended)', 'fl-builder' ),
+							'yes' => __( 'Yes', 'fl-builder' ),
+						),
+						'help'    => __( 'This pattern\'s content is normally prevented from running shortcodes, since patterns can include third-party blocks whose content isn\'t fully trusted. Only choose Yes if you know this specific pattern needs to run a shortcode (for example, a WooCommerce checkout fallback) and you trust everything it renders. This setting applies to this pattern only, not others on your site.', 'fl-builder' ),
 					),
 				),
 			),

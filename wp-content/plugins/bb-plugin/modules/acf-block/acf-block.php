@@ -7,14 +7,17 @@ class FLACFBlockModule extends FLBuilderModule {
 	 */
 	public function __construct() {
 		parent::__construct( array(
-			'name'            => __( 'ACF Block', 'fl-builder' ),
-			'description'     => __( 'Display an ACF block.', 'fl-builder' ),
-			'group'           => __( 'ACF Blocks', 'fl-builder' ),
-			'category'        => __( 'ACF Blocks', 'fl-builder' ),
-			'icon'            => 'layout.svg',
-			'editor_export'   => true,
-			'partial_refresh' => true,
-			'enabled'         => false, // We use aliases instead.
+			'name'               => __( 'ACF Block', 'fl-builder' ),
+			'description'        => __( 'Display an ACF block.', 'fl-builder' ),
+			'group'              => __( 'ACF Blocks', 'fl-builder' ),
+			'category'           => __( 'ACF Blocks', 'fl-builder' ),
+			'icon'               => 'layout.svg',
+			'editor_export'      => true,
+			'partial_refresh'    => true,
+			'enabled'            => false, // We use aliases instead.
+			// Renders arbitrary block output that can contain untrusted user
+			// data; do not run its shortcodes through the layout pass.
+			'renders_shortcodes' => false,
 		) );
 	}
 
@@ -39,6 +42,9 @@ class FLACFBlockModule extends FLBuilderModule {
 	 * @return bool
 	 */
 	static public function is_disabled() {
+		/**
+		 * Whether ACF block support is disabled in the builder.
+		 */
 		return apply_filters( 'fl_disable_acf_blocks', false );
 	}
 

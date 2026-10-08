@@ -29,6 +29,7 @@ foreach ( $settings->icons as $icon ) {
 		'duo_color1'      => $icon->duo_color1,
 		'duo_color2'      => $icon->duo_color2,
 		'sr_text'         => $icon->sr_text,
+		'icon_extra'      => $icon->icon_extra ?? $icon->extra ?? '',
 	);
 
 	FLBuilder::render_module_html( 'icon', $icon_settings );

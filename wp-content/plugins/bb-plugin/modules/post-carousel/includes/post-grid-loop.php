@@ -41,7 +41,15 @@
 		</div>
 		<?php endif; ?>
 
-		<?php do_action( 'fl_builder_post_carousel_grid_before_content', $settings ); ?>
+		<?php
+		/**
+		 * Fires before the post carousel grid content (excerpt, more link) is rendered.
+		 *
+		 * @since 1.0
+		 * @param object $settings Module settings.
+		 */
+		do_action( 'fl_builder_post_carousel_grid_before_content', $settings );
+		?>
 		<?php if ( $settings->show_content || $settings->show_more_link ) : ?>
 		<div class="fl-post-carousel-content">
 			<?php
@@ -57,7 +65,15 @@
 			<?php endif; ?>
 		</div>
 		<?php endif; ?>
-		<?php do_action( 'fl_builder_post_carousel_grid_after_content', $settings ); ?>
+		<?php
+		/**
+		 * Fires after the post carousel grid content (excerpt, more link) is rendered.
+		 *
+		 * @since 1.0
+		 * @param object $settings Module settings.
+		 */
+		do_action( 'fl_builder_post_carousel_grid_after_content', $settings );
+		?>
 
 	</div>
 

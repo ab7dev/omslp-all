@@ -41,13 +41,22 @@
 
 				<?php if ( 'yes' == $settings->has_icon && 'above' == $settings->icon_position ) : ?>
 					<span class="fl-gallery-icon">
-						<i class="<?php echo esc_attr( $settings->icon ); ?>"></i>
+						<i class="<?php echo esc_attr( FLBuilderModuleUtils::get_icon_classes( $settings ) ); ?>"></i>
 					</span>
 				<?php endif; ?>
 
 				<h2 class="fl-post-gallery-title" itemprop="headline"><?php the_title(); ?></h2>
 
-				<?php do_action( 'fl_builder_post_gallery_before_meta', $settings, $module ); ?>
+				<?php
+				/**
+				 * Fires before the post gallery meta is rendered.
+				 *
+				 * @since 1.0
+				 * @param object $settings Module settings.
+				 * @param object $module   The post grid module instance.
+				 */
+				do_action( 'fl_builder_post_gallery_before_meta', $settings, $module );
+				?>
 
 				<?php if ( $settings->show_date ) : ?>
 				<span class="fl-post-gallery-date">
@@ -55,11 +64,20 @@
 				</span>
 				<?php endif; ?>
 
-				<?php do_action( 'fl_builder_post_gallery_after_meta', $settings, $module ); ?>
+				<?php
+				/**
+				 * Fires after the post gallery meta is rendered.
+				 *
+				 * @since 1.0
+				 * @param object $settings Module settings.
+				 * @param object $module   The post grid module instance.
+				 */
+				do_action( 'fl_builder_post_gallery_after_meta', $settings, $module );
+				?>
 
 				<?php if ( 'yes' == $settings->has_icon && 'below' == $settings->icon_position ) : ?>
 					<span class="fl-gallery-icon">
-						<i class="<?php echo esc_attr( $settings->icon ); ?>"></i>
+						<i class="<?php echo esc_attr( FLBuilderModuleUtils::get_icon_classes( $settings ) ); ?>"></i>
 					</span>
 				<?php endif; ?>
 

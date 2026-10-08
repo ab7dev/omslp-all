@@ -25,6 +25,7 @@ if (! defined( 'NFW_ENGINE_VERSION' ) ) { die( 'Forbidden' ); }
 		<li><a href="https://wordpress.org/plugins/safercheckout-lite/"><strong>SaferCheckout</strong></a>: <?php esc_html_e('Fraud prevention for WooCommerce stores.', 'nfwplus' ) ?></li>
 		<li><a href="https://wordpress.org/plugins/ninjascanner/"><strong>NinjaScanner</strong></a>: <?php esc_html_e('A lightweight, fast and powerful antivirus scanner for WordPress.', 'nfwplus' ) ?></li>
 	</ul>
+	<p style="text-align:center;"><strong><?php esc_html_e('100% certified AI free.', 'nfwplus') ?></strong></p>
 	</font>
 </div>
 <?php

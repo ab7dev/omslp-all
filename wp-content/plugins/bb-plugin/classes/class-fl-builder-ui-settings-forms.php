@@ -75,6 +75,9 @@ class FLBuilderUISettingsForms {
 	 * @return void
 	 */
 	static public function init_style_fields() {
+		/**
+		 * Array of style field definitions registered for use in module settings forms.
+		 */
 		self::$style_fields = apply_filters( 'fl_builder_style_fields', self::$style_fields );
 	}
 
@@ -196,10 +199,13 @@ class FLBuilderUISettingsForms {
 			'editables'   => self::prep_editables_for_js_config(),
 			'nodes'       => self::prep_node_settings_for_js_config(),
 			'attachments' => self::prep_attachments_for_js_config(),
-			'settings'    => apply_filters( 'fl_builder_js_config_settings_forms', array(
+			/**
+			 * Settings array passed to the builder JS config containing global and layout settings objects.
+			 */
+			'settings'    => apply_filters( 'fl_builder_js_config_settings_forms', FLBuilderLayoutPostSettings::inject_settings( array(
 				'global' => FLBuilderModel::get_global_settings(),
 				'layout' => FLBuilderModel::get_layout_settings(),
-			) ),
+			) ) ),
 			'defaults'    => array(
 				'row'     => FLBuilderModel::get_row_defaults(),
 				'column'  => FLBuilderModel::get_col_defaults(),
@@ -228,9 +234,11 @@ class FLBuilderUISettingsForms {
 	 * @return array
 	 */
 	static public function get_node_js_config() {
+		$layout_data = FLBuilderModel::get_layout_data();
+
 		return array(
-			'nodes'       => self::prep_node_settings_for_js_config(),
-			'attachments' => self::prep_attachments_for_js_config(),
+			'nodes'       => self::prep_node_settings_for_js_config( $layout_data ),
+			'attachments' => self::prep_attachments_for_js_config( $layout_data ),
 		);
 	}
 
@@ -383,10 +391,14 @@ class FLBuilderUISettingsForms {
 				'tabs'    => $module->form,
 				'assets'  => array(
 					'css'   => $css,
+					'cssurl' => $css_file_uri,
 					'js'    => $js,
 					'jsurl' => $js_file_uri,
 				),
 				'version' => FLBuilderModuleDeprecations::get_module_version( $module->slug ),
+				// Cast: the value comes from a module's registration array, so a
+				// third-party module can pass anything truthy here.
+				'ownsInstanceEditor' => (bool) $module->owns_instance_editor,
 			);
 		}
 
@@ -451,8 +463,10 @@ class FLBuilderUISettingsForms {
 	 * @since 2.0
 	 * @return array
 	 */
-	static public function prep_node_settings_for_js_config() {
-		$layout_data   = FLBuilderModel::get_layout_data();
+	static public function prep_node_settings_for_js_config( $layout_data = null ) {
+		if ( null === $layout_data ) {
+			$layout_data = FLBuilderModel::get_layout_data();
+		}
 		$node_settings = array();
 
 		foreach ( $layout_data as $node_id => $node ) {
@@ -472,9 +486,11 @@ class FLBuilderUISettingsForms {
 	 * @since 2.0
 	 * @return array
 	 */
-	static private function prep_attachments_for_js_config() {
+	static private function prep_attachments_for_js_config( $layout_data = null ) {
 
-		$layout_data = FLBuilderModel::get_layout_data();
+		if ( null === $layout_data ) {
+			$layout_data = FLBuilderModel::get_layout_data();
+		}
 		$attachments = array();
 
 		foreach ( $layout_data as $node ) {
@@ -667,6 +683,9 @@ class FLBuilderUISettingsForms {
 			'url'      => $url,
 			'filename' => $filename,
 			'caption'  => $post->post_excerpt,
+			/**
+			 * Array of available image sizes returned for a photo attachment in the builder.
+			 */
 			'sizes'    => apply_filters( 'fl_builder_photo_sizes_select', $sizes ),
 		);
 	}
@@ -684,6 +703,9 @@ class FLBuilderUISettingsForms {
 		include FL_BUILDER_DIR . 'includes/ui-field.php';
 
 		$fields = glob( FL_BUILDER_DIR . 'includes/ui-field-*.php' );
+		/**
+		 * Map of custom field type slugs to their template file paths for rendering in the builder UI.
+		 */
 		$custom = apply_filters( 'fl_builder_custom_fields', array() );
 
 		foreach ( $fields as $path ) {
@@ -718,13 +740,16 @@ class FLBuilderUISettingsForms {
 	 * @return array
 	 */
 	static public function pre_render_legacy_module_settings( $type, $settings ) {
-		$data   = array(
+		$data = array(
 			'tabs'     => array(),
 			'sections' => array(),
 			'fields'   => array(),
 			'settings' => $settings,
 			'node_id'  => null,
 		);
+		/**
+		 * Map of custom field type slugs to their template file paths for use in legacy settings rendering.
+		 */
 		$custom = apply_filters( 'fl_builder_custom_fields', array() );
 
 		foreach ( FLBuilderModel::$modules[ $type ]->form as $tab_id => $tab ) {
@@ -836,23 +861,35 @@ class FLBuilderUISettingsForms {
 				$after  = array();
 				foreach ( $value as $repeater_item_value ) {
 					ob_start();
+					/**
+					 * Fires before a settings control is rendered for each repeater item value.
+					 */
 					do_action( 'fl_builder_before_control', $name, $repeater_item_value, $field, $settings );
 					do_action( 'fl_builder_before_control_' . $field['type'], $name, $value, $field, $settings );
 					$before[] = ob_get_clean();
 
 					ob_start();
 					do_action( 'fl_builder_after_control_' . $field['type'], $name, $value, $field, $settings );
+					/**
+					 * Fires after a settings control is rendered for each repeater item value.
+					 */
 					do_action( 'fl_builder_after_control', $name, $repeater_item_value, $field, $settings );
 					$after[] = ob_get_clean();
 				}
 			} else {
 				ob_start();
+				/**
+				 * Fires before a settings control is rendered (single-value path).
+				 */
 				do_action( 'fl_builder_before_control', $name, $value, $field, $settings );
 				do_action( 'fl_builder_before_control_' . $field['type'], $name, $value, $field, $settings );
 				$before = ob_get_clean();
 
 				ob_start();
 				do_action( 'fl_builder_after_control_' . $field['type'], $name, $value, $field, $settings );
+				/**
+				 * Fires after a settings control is rendered (single-value path).
+				 */
 				do_action( 'fl_builder_after_control', $name, $value, $field, $settings );
 				$after = ob_get_clean();
 			}
@@ -994,6 +1031,10 @@ class FLBuilderUISettingsForms {
 	 */
 	static public function render_settings_field( $name, $field, $settings = null, $data = null ) {
 
+		// Normalize $settings to an object before the filter so third-party callbacks
+		// using property_exists()/->prop don't fatal on PHP 8+ when $settings is null.
+		$settings = ! $settings ? new stdClass() : $settings;
+
 		/**
 		 * Use this filter to modify the config array for a field before it is rendered.
 		 * @see fl_builder_render_settings_field
@@ -1009,7 +1050,6 @@ class FLBuilderUISettingsForms {
 		$i                 = null;
 		$is_multiple       = isset( $field['multiple'] ) && true === (bool) $field['multiple'];
 		$supports_multiple = 'editor' != $field['type'] && 'service' != $field['type'];
-		$settings          = ! $settings ? new stdClass() : $settings;
 		$preview           = isset( $field['preview'] ) ? json_encode( $field['preview'] ) : json_encode( array(
 			'type' => 'refresh',
 		) );

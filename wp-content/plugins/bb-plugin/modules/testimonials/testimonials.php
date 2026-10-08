@@ -30,6 +30,26 @@ class FLTestimonialsModule extends FLBuilderModule {
 	}
 
 	/**
+	 * Ensure backwards compatibility with old settings.
+	 *
+	 * @param object $settings A module settings object.
+	 * @param object $helper A settings compatibility helper.
+	 * @return object
+	 */
+	public function filter_settings( $settings, $helper ) {
+		if ( ! empty( $settings->heading_size ) ) {
+			$settings->heading_typography              = array();
+			$settings->heading_typography['font_size'] = array(
+				'length' => $settings->heading_size,
+				'unit'   => 'px',
+			);
+			unset( $settings->heading_size );
+		}
+
+		return $settings;
+	}
+
+	/**
 	 * @since 2.10
 	 * @method get_tag
 	 * @param string class name
@@ -45,7 +65,7 @@ class FLTestimonialsModule extends FLBuilderModule {
 
 	/**
 	 * @since 2.10
-	 * @method render_items
+	 * @method render_item
 	 * @param string testimonial item
 	 * @return string
 	 */
@@ -54,6 +74,13 @@ class FLTestimonialsModule extends FLBuilderModule {
 			return '<div class="fl-testimonial">' . $testimonial . '</div>';
 		}
 		return '<li class="fl-testimonial"><blockquote>' . $testimonial . '</blockquote></li>';
+	}
+
+	/**
+	 * @method is_loop_enabled
+	 */
+	public function is_loop_enabled() {
+		return $this->settings->loop;
 	}
 }
 
@@ -144,6 +171,15 @@ FLBuilder::register_module('FLTestimonialsModule', array(
 							'prev' => __( 'Left To Right', 'fl-builder' ),
 						),
 					),
+					'loop'       => array(
+						'type'    => 'select',
+						'label'   => __( 'Loop', 'fl-builder' ),
+						'default' => 'true',
+						'options' => array(
+							'false' => __( 'No', 'fl-builder' ),
+							'true'  => __( 'Yes', 'fl-builder' ),
+						),
+					),
 				),
 			),
 		),
@@ -177,7 +213,7 @@ FLBuilder::register_module('FLTestimonialsModule', array(
 			'heading'    => array( // Section
 				'title'  => __( 'Heading', 'fl-builder' ), // Section Title
 				'fields' => array( // Section Fields
-					'heading'      => array(
+					'heading'            => array(
 						'type'    => 'text',
 						'default' => __( 'Testimonials', 'fl-builder' ),
 						'label'   => __( 'Heading', 'fl-builder' ),
@@ -186,17 +222,27 @@ FLBuilder::register_module('FLTestimonialsModule', array(
 							'selector' => '.fl-testimonials-heading',
 						),
 					),
-					'heading_size' => array(
-						'type'    => 'unit',
-						'label'   => __( 'Heading Size', 'fl-builder' ),
-						'default' => '24',
-						'units'   => array( 'px' ),
-						'slider'  => true,
-						'preview' => array(
+					'heading_color'      => array(
+						'type'        => 'color',
+						'connections' => array( 'color' ),
+						'label'       => __( 'Color', 'fl-builder' ),
+						'show_reset'  => true,
+						'show_alpha'  => true,
+						'responsive'  => true,
+						'preview'     => array(
+							'type'      => 'css',
+							'selector'  => '{node} .fl-testimonials-wrap.compact h3',
+							'property'  => 'color',
+							'important' => true,
+						),
+					),
+					'heading_typography' => array(
+						'type'       => 'typography',
+						'label'      => __( 'Typography', 'fl-builder' ),
+						'responsive' => true,
+						'preview'    => array(
 							'type'     => 'css',
-							'property' => 'font-size',
 							'selector' => '.fl-testimonials-wrap.compact h3',
-							'unit'     => 'px',
 						),
 					),
 				),
@@ -210,6 +256,7 @@ FLBuilder::register_module('FLTestimonialsModule', array(
 						'label'       => __( 'Text Color', 'fl-builder' ),
 						'show_reset'  => true,
 						'show_alpha'  => true,
+						'responsive'  => true,
 						'preview'     => array(
 							'type'      => 'css',
 							'selector'  => '{node} .fl-testimonials-wrap .fl-testimonials .fl-testimonial, {node} .fl-testimonials-wrap .fl-testimonials .fl-testimonial *',
@@ -252,10 +299,9 @@ FLBuilder::register_module('FLTestimonialsModule', array(
 						'default'     => '999999',
 						'show_reset'  => true,
 						'show_alpha'  => true,
+						'responsive'  => true,
 						'preview'     => array(
-							'type'     => 'css',
-							'selector' => '.fl-testimonials-wrap .fas',
-							'property' => 'color',
+							'type' => 'refresh',
 						),
 					),
 				),

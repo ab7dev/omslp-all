@@ -38,7 +38,15 @@ class NinjaFirewall_centralisedlogging {
 			}
 		}
 
-		if ( empty( $pubkey[0] ) || ! hash_equals( $pubkey[0], sha1( $_POST['clogs_req'] ) ) ) {
+		/**
+		 * Backward compatibility: older versions of NinjaFirewall are using SHA1.
+		 */
+		if ( strlen( $pubkey[0] ) == 40 ) {
+			$res = hash_equals( $pubkey[0], sha1( $_POST['clogs_req'] ) );
+		} else {
+			$res = hash_equals( $pubkey[0], hash('sha256', $_POST['clogs_req'] ) );
+		}
+		if ( empty( $pubkey[0] ) || $res === false ) {
 
 			NinjaFirewall_log::write(
 				'Centralized logging: public key rejected',

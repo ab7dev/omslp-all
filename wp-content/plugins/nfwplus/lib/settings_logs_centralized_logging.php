@@ -98,7 +98,7 @@ if (! empty( $error_msg ) ) {
 			<tr>
 				<th scope="row" class="row-med"><?php _e('Public key', 'nfwplus') ?></th>
 				<td id="pubkey">
-					<input type="text" class="large-text" value="<?php echo sha1( $nfw_options['clogs_seckey'] )  .':'. htmlspecialchars( $nfw_options['clogs_ip'] ) ?>" readonly />
+					<input type="text" class="large-text" value="<?php echo hash('sha256', $nfw_options['clogs_seckey'] )  .':'. htmlspecialchars( $nfw_options['clogs_ip'] ) ?>" readonly />
 					<p class="description"><?php printf( __('Add this key to the remote websites. <a href="%s">Consult our blog</a> for more info.', 'nfwplus'), 'https://blog.nintechnet.com/centralized-logging-with-ninjafirewall/' ) ?></p>
 				</td>
 			</tr>
@@ -106,7 +106,7 @@ if (! empty( $error_msg ) ) {
 			<tr>
 				<th scope="row" class="row-med"><?php _e('Remote websites URL', 'nfwplus') ?></th>
 				<td>
-					<textarea class="large-text code" id="clogs-urls" name="nfw_options[clogs_urls]" rows="10" placeholder="http://example.org/index.php" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"><?php echo $urls ?></textarea>
+					<textarea class="large-text code" id="clogs-urls" name="nfw_options[clogs_urls]" rows="10" placeholder="https://example.org/index.php" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"><?php echo $urls ?></textarea>
 					<p class="description"><?php _e('Enter one URL per line, including the protocol (<code>http://</code> or <code>https://</code>). Only ASCII URLs are accepted.', 'nfwplus') ?></p>
 				</td>
 			</tr>
@@ -173,7 +173,7 @@ function nf_sub_centlog_save( $nfw_options ) {
 function generate_clogs_seckey() {
 
 	$key = '';
-	for ( $i = 0; $i < 40; ++$i ) {
+	for ( $i = 0; $i < 64; ++$i ) {
 		$key .= chr( mt_rand( 33, 126 ) );
 	}
 	return $key;

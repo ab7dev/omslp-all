@@ -1,21 +1,75 @@
+/* Version Cards Grid */
+.fl-version-cards {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 16px;
+}
+
+/* Individual Card */
+.fl-version-card {
+	background: #fff;
+	border: 1px solid #e0e0e0;
+	border-radius: 10px;
+	padding: 20px 24px;
+	display: flex;
+	flex-direction: column;
+}
+.fl-version-card-header h4 {
+	font-size: 15px;
+	font-weight: 600;
+	color: #1d2327;
+	margin: 0 0 4px;
+}
+.fl-version-card-header p {
+	font-size: 13px;
+	color: #787c82;
+	margin: 0;
+}
+.fl-version-card-body {
+	margin-top: 16px;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+.fl-version-card-body select {
+	flex: 1;
+}
+.fl-version-card-body .button-primary {
+	flex-shrink: 0;
+}
+
+/* Status area */
+#fl-versions-form .status {
+	margin-top: 16px;
+}
+#fl-versions-form .status h2 {
+	font-size: 14px;
+	color: #0E5A71;
+}
+
+/* Loading animation */
 .loading:after {
-  overflow: hidden;
-  display: inline-block;
-  vertical-align: bottom;
-  -webkit-animation: ellipsis steps(4,end) 900ms infinite;
-  animation: ellipsis steps(4,end) 900ms infinite;
-  content: "\2026"; /* ascii code for the ellipsis character */
-  width: 0px;
+	overflow: hidden;
+	display: inline-block;
+	vertical-align: bottom;
+	animation: ellipsis steps(4, end) 900ms infinite;
+	content: "\2026";
+	width: 0px;
 }
-
 @keyframes ellipsis {
-  to {
-    width: 1.25em;
-  }
+	to {
+		width: 1.25em;
+	}
 }
 
-@-webkit-keyframes ellipsis {
-  to {
-    width: 1.25em;
-  }
+/* Responsive */
+@media (max-width: 960px) {
+	.fl-version-cards {
+		grid-template-columns: 1fr 1fr;
+	}
+}
+@media (max-width: 600px) {
+	.fl-version-cards {
+		grid-template-columns: 1fr;
+	}
 }

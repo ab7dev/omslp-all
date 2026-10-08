@@ -58,54 +58,53 @@ class FLAccordionModule extends FLBuilderModule {
 	}
 
 	/**
-	 * @method render_content
+	 * @method get_content
 	 */
-	public function render_content( $post_id ) {
+	public function get_content( $post_id ) {
 		if ( FLBuilderModel::is_builder_enabled( $post_id ) ) {
-
 			// Enqueue styles and scripts for the post.
 			FLBuilder::enqueue_layout_styles_scripts_by_id( $post_id );
-
+			// Start buffering so we can capture printed content.
+			ob_start();
 			// Print the styles if we are outside of the head tag.
 			if ( did_action( 'wp_enqueue_scripts' ) && ! doing_filter( 'wp_enqueue_scripts' ) ) {
 				wp_print_styles();
 			}
-
 			// Render the builder content.
 			FLBuilder::render_content_by_id( $post_id );
+			// Capture the content and clear it.
+			return ob_get_clean();
 		} else {
-			// Render the WP editor content if the builder isn't enabled.
-			echo apply_filters( 'the_content', get_the_content( null, false, $post_id ) );
+			// Return the WP editor content if the builder isn't enabled.
+			return apply_filters( 'the_content', get_the_content( null, false, $post_id ) );
 		}
 	}
 
 	/**
-	 * @method render_excerpt
+	 * @method get_excerpt
 	 */
-	public function render_excerpt( $post_id ) {
+	public function get_excerpt( $post_id ) {
 		add_filter( 'excerpt_length', array( $this, 'set_custom_excerpt_length' ), 9999 );
 		add_filter( 'excerpt_more', array( $this, 'set_custom_excerpt_more' ), 9999 );
-		echo '<p>' . get_the_excerpt( $post_id ) . '</p>';
+		$excerpt = '<p>' . get_the_excerpt( $post_id ) . '</p>';
 		remove_filter( 'excerpt_more', array( $this, 'set_custom_excerpt_more' ), 9999 );
 		remove_filter( 'excerpt_length', array( $this, 'set_custom_excerpt_length' ), 9999 );
+		return $excerpt;
 	}
 
 	/**
-	 * @method render_more_link
+	 * @method get_more_link
 	 */
-	public function render_more_link( $post_id, $more_link_text = '' ) {
-
+	public function get_more_link( $post_id, $more_link_text = '' ) {
 		if ( empty( $more_link_text ) ) {
 			return;
 		}
-
-		$html   = array();
-		$html[] = '<div><a class="fl-accordion-post-more-link"';
-		$html[] = 'href="' . esc_url( get_the_permalink() ) . '"';
-		$html[] = 'title="' . the_title_attribute( array( 'echo' => false ) ) . '">';
-		$html[] = $more_link_text . '<span class="sr-only"> about ' . the_title_attribute( array( 'echo' => false ) ) . '</span>';
-		$html[] = '</a></div>';
-		echo join( '', $html );
+		$output[] = '<div><a class="fl-accordion-post-more-link"';
+		$output[] = 'href="' . esc_url( get_the_permalink() ) . '"';
+		$output[] = 'title="' . the_title_attribute( array( 'echo' => false ) ) . '">';
+		$output[] = $more_link_text . '<span class="sr-only"> about ' . the_title_attribute( array( 'echo' => false ) ) . '</span>';
+		$output[] = '</a></div>';
+		return join( '', $output );
 	}
 
 	/**
@@ -115,11 +114,11 @@ class FLAccordionModule extends FLBuilderModule {
 	 * @return void
 	 */
 	public function set_custom_excerpt_length( $length ) {
-		$exept_length = strval( $this->settings->excerpt_length );
-		if ( trim( $exept_length ) === '' ) {
+		$excerpt_length = strval( $this->settings->excerpt_length );
+		if ( trim( $excerpt_length ) === '' ) {
 			return $length;
 		}
-		return intval( $exept_length );
+		return intval( $excerpt_length );
 	}
 
 	/**
@@ -130,6 +129,327 @@ class FLAccordionModule extends FLBuilderModule {
 	 */
 	public function set_custom_excerpt_more( $more ) {
 		return $this->settings->excerpt_more_text;
+	}
+
+	/**
+	 * Checks if the accordion item is opened.
+	 *
+	 * @since 2.11
+	 * @method is_item_opened
+	 * @param integer $index The index of the accordion item
+	 * @return bool
+	 */
+	public function is_item_opened( $index ) {
+		// Open the first item if the setting is enabled or if the builder is active to preview content styling.
+		return 0 === $index && ( '1' === $this->settings->open_first || FLBuilderModel::is_builder_active() );
+	}
+
+	/**
+	 * Gets the wrapper tag attributes of the accordion tab.
+	 *
+	 * @since 2.11
+	 * @method get_wrapper_attributes
+	 * @return string
+	 */
+	public function get_wrapper_attributes() {
+		$attributes = array();
+		$classes    = array( 'fl-accordion', 'fl-accordion-' . sanitize_html_class( $this->settings->label_size ) );
+		if ( $this->settings->collapse ) {
+			$classes[] = 'fl-accordion-collapse';
+		} else {
+			$attributes['multiselectable'] = 'true';
+		}
+		$attributes['class'] = join( ' ', $classes );
+		return FLBuilderModuleUtils::join_html_attributes( $attributes );
+	}
+
+	/**
+	 * Gets the wrapping item attributes of the accordion tab.
+	 *
+	 * @since 2.11
+	 * @method get_item_attributes
+	 * @param integer $index The index of the accordion item
+	 * @return string
+	 */
+	public function get_item_attributes( $index ) {
+		$attributes = array();
+		if ( ! empty( $this->settings->id ) ) {
+			$attributes['id'] = sanitize_html_class( $this->settings->id ) . '-' . $index;
+		}
+		$classes = array( 'fl-accordion-item' );
+		if ( $this->is_item_opened( $index ) ) {
+			$classes[] = 'fl-accordion-item-active';
+		}
+		$attributes['class'] = join( ' ', $classes );
+		return FLBuilderModuleUtils::join_html_attributes( $attributes );
+	}
+
+	/**
+	 * Gets the heading tag while ensuring backward compatibility for deprecated versions.
+	 *
+	 * @since 2.11
+	 * @method get_heading_tag
+	 * @return string
+	 */
+	public function get_heading_tag() {
+		if ( 2 < $this->version ) {
+			return $this->settings->label_tag;
+		}
+		return '';
+	}
+
+	/**
+	 * Gets the heading attributes of the accordion tab, ensuring backward compatibility for deprecated versions.
+	 *
+	 * @since 2.11
+	 * @method get_heading_attributes
+	 * @return string
+	 */
+	public function get_heading_attributes() {
+		if ( 2 < $this->version ) {
+			$attributes['class'] = 'fl-accordion-heading';
+			if ( false === strpos( $this->settings->label_tag, 'h' ) ) {
+				$attributes['role']       = 'heading';
+				$attributes['aria-level'] = '2';
+			}
+			return FLBuilderModuleUtils::join_html_attributes( $attributes );
+		}
+		return '';
+	}
+
+	/**
+	 * Gets the button tag while ensuring backward compatibility for deprecated versions.
+	 *
+	 * @since 2.11
+	 * @method get_button_tag
+	 * @return string
+	 */
+	public function get_button_tag() {
+		if ( 2 < $this->version ) {
+			return 'button';
+		}
+		return 'div';
+	}
+
+	/**
+	 * Gets the button attributes of the accordion tab, ensuring backward compatibility for deprecated versions.
+	 *
+	 * @since 2.11
+	 * @method get_button_attributes
+	 * @param integer $index The index of the accordion item
+	 * @return string
+	 */
+	public function get_button_attributes( $index ) {
+		$classes    = array( 'fl-accordion-button' );
+		$attributes = array(
+			'id'            => 'fl-accordion-' . $this->node . '-button-' . $index,
+			'aria-controls' => 'fl-accordion-' . $this->node . '-content-' . $index,
+			'aria-expanded' => $this->is_item_opened( $index ) ? 'true' : 'false',
+		);
+		if ( 2 < $this->version ) {
+			$attributes['type'] = 'button';
+			$classes[]          = 'fl-content-ui-button';
+		} else {
+			$attributes['role']     = 'button';
+			$attributes['tabindex'] = '0';
+		}
+		$attributes['class'] = join( ' ', $classes );
+		return FLBuilderModuleUtils::join_html_attributes( $attributes );
+	}
+
+	/**
+	 * Get the label tag while ensuring backward compatibility for deprecated versions.
+	 *
+	 * @since 2.11
+	 * @method get_label_tag
+	 * @return string
+	 */
+	public function get_label_tag() {
+		if ( 3 > $this->version ) {
+			return $this->settings->label_tag;
+		}
+		return 'span';
+	}
+
+	/**
+	 * Gets the label attributes of the accordion tab, ensuring backward compatibility for deprecated versions.
+	 *
+	 * @since 2.11
+	 * @method get_label_attributes
+	 * @return string
+	 */
+	public function get_label_attributes() {
+		$attributes['class'] = 'fl-accordion-button-label';
+		if ( 3 > $this->version ) {
+			$attributes['role'] = 'none';
+		}
+		return FLBuilderModuleUtils::join_html_attributes( $attributes );
+	}
+
+	/**
+	 * Get the icon tag while ensuring backward compatibility for deprecated versions.
+	 *
+	 * @since 2.11
+	 * @method get_icon_tag
+	 * @return string
+	 */
+	public function get_icon_tag() {
+		if ( 1 === $this->version ) {
+			return 'a';
+		} elseif ( 2 === $this->version ) {
+			return 'button';
+		}
+		return 'span';
+	}
+
+	/**
+	 * Gets the icon attributes of the accordion tab, ensuring backward compatibility for deprecated versions.
+	 *
+	 * @since 2.11
+	 * @method get_icon_attributes
+	 * @param integer $index The index of the accordion item
+	 * @return string
+	 */
+	public function get_icon_attributes( $index ) {
+		$classes = array( 'fl-accordion-button-icon', 'fl-accordion-button-icon-' . $this->settings->label_icon_position );
+		if ( 2 === $this->version ) {
+			$classes[] = 'fl-content-ui-button';
+		}
+		$attributes = array(
+			'id'    => 'fl-accordion-' . $this->node . '-icon-' . $index,
+			'class' => join( ' ', $classes ),
+		);
+		if ( 3 > $this->version ) {
+			$attributes['role']        = 'none';
+			$attributes['tabindex']    = '-1';
+			$attributes['aria-hidden'] = 'true';
+		}
+		return FLBuilderModuleUtils::join_html_attributes( $attributes );
+	}
+
+	/**
+	 * Gets the icon content for the accordion tab.
+	 *
+	 * @since 2.11
+	 * @method get_icon_content
+	 * @param integer $index The index of the accordion item
+	 * @return string
+	 */
+	public function get_icon_content( $index ) {
+		$opened       = $this->is_item_opened( $index );
+		$label        = FLBuilderModuleUtils::get_icon_classes( $this->settings, 'label_' );
+		$active_class = FLBuilderModuleUtils::get_icon_classes( $this->settings, 'label_active_' );
+		$current      = $opened ? $active_class : $label;
+		$text         = $opened ? __( 'Collapse', 'fl-builder' ) : __( 'Expand', 'fl-builder' );
+		return '<i class="fl-accordion-button-icon ' . $current . '" data-label-icon="' . esc_attr( $label ) . '" data-active-icon="' . esc_attr( $active_class ) . '"><span class="sr-only">' . $text . '</span></i>';
+	}
+
+	/**
+	 * Gets the accordion tab data for the specified index.
+	 *
+	 * @since 2.11
+	 * @method get_tab_data
+	 * @param integer $index The index of the accordion item
+	 * @return string
+	 */
+	public function get_tab_data( $index ) {
+		$tags     = array(
+			'heading' => $this->get_heading_tag(),
+			'button'  => $this->get_button_tag(),
+			'label'   => $this->get_label_tag(),
+			'icon'    => $this->get_icon_tag(),
+		);
+		$heading  = sprintf( '<%1$s %2$s>', $tags['heading'], $this->get_heading_attributes() );
+		$button   = sprintf( '<%1$s %2$s>', $tags['button'], $this->get_button_attributes( $index ) );
+		$label    = sprintf( '<%1$s %2$s>', $tags['label'], $this->get_label_attributes( $index ) );
+		$icon     = sprintf( '<%1$s %2$s>', $tags['icon'], $this->get_icon_attributes( $index ) );
+		$html     = sprintf( '%1$s%2$s</%3$s>', $icon, $this->get_icon_content( $index ), $tags['icon'] );
+		$output[] = empty( $tags['heading'] ) ? $button : $heading . $button;
+		if ( 'left' === $this->settings->label_icon_position ) {
+			$output[] = $html;
+		}
+		$output[] = $label;
+		if ( 'content' === $this->settings->source ) {
+			$output[] = wp_kses_post( $this->settings->items[ $index ]->label );
+		} elseif ( 'post' === $this->settings->source ) {
+			$output[] = get_the_title();
+		}
+		$output[] = sprintf( '</%1$s>', $tags['label'] );
+		if ( 'right' === $this->settings->label_icon_position ) {
+			$output[] = $html;
+		}
+		$output[] = sprintf( '</%1$s>', $tags['button'] );
+		if ( ! empty( $tags['heading'] ) ) {
+			$output[] = sprintf( '</%s>', $tags['heading'] );
+		}
+		return join( '', $output );
+	}
+
+	/**
+	 * Gets the content tag attributes for the accordion item.
+	 *
+	 * @since 2.11
+	 * @method get_content_attributes
+	 * @param integer $index The index of the accordion item
+	 * @return string
+	 */
+	public function get_content_attributes( $index ) {
+		$attributes = array(
+			'id'              => 'fl-accordion-' . $this->node . '-content-' . $index,
+			'class'           => 'fl-accordion-content fl-clearfix',
+			'role'            => 'region',
+			'aria-hidden'     => ( $this->is_item_opened( $index ) ) ? 'false' : 'true',
+			'aria-labelledby' => 'fl-accordion-' . $this->node . '-button-' . $index,
+		);
+		return FLBuilderModuleUtils::join_html_attributes( $attributes );
+	}
+
+	/**
+	 * Gets the content data for the accordion item.
+	 *
+	 * @since 2.11
+	 * @method get_content_data
+	 * @param integer $index The index of the accordion item
+	 * @param object $embed The WP embed instance to retrieve content data
+	 * @return string
+	 */
+	public function get_content_data( $index, $embed = null ) {
+		if ( 'content' === $this->settings->source ) {
+			if ( 'none' === $this->settings->items[ $index ]->saved_layout ) {
+				return FLBuilderUtils::wpautop( $embed->autoembed( $this->settings->items[ $index ]->content ), $this );
+			} else {
+				$post_id = $this->settings->items[ $index ]->{'saved_' . $this->settings->items[ $index ]->saved_layout};
+				if ( ! empty( $post_id ) ) {
+					return $this->get_content( $post_id );
+				}
+			}
+		} elseif ( 'post' === $this->settings->source ) {
+			$post_id = get_the_id();
+			if ( ! empty( $this->settings->content_type ) && 'post_content' === $this->settings->content_type ) {
+				return $this->get_content( $post_id );
+			} else {
+				$more_link_text = ( ! empty( $this->settings->more_link ) && 'show' === $this->settings->more_link ) ? $this->settings->more_link_text : '';
+				return $this->get_excerpt( $post_id ) . $this->get_more_link( $post_id, $more_link_text );
+			}
+		}
+	}
+
+	/**
+	 * Build the whole accordion item structure.
+	 *
+	 * @since 2.11
+	 * @method build_item_structure
+	 * @param integer $index The index of the accordion item
+	 * @param object $embed The WP embed instance to retrieve content data
+	 * @return string
+	 */
+	public function build_item_structure( $index, $embed = null ) {
+		$item     = sprintf( '<div %s>', $this->get_item_attributes( $index ) );
+		$content  = sprintf( '<div %s>', $this->get_content_attributes( $index ) );
+		$output[] = $item . $this->get_tab_data( $index );
+		$output[] = $content . $this->get_content_data( $index, $embed );
+		$output[] = '</div></div>';
+		return join( '', $output );
 	}
 }
 
@@ -158,7 +478,7 @@ FLBuilder::register_module('FLAccordionModule', array(
 							),
 							'content' => array(
 								'sections' => array( 'content' ),
-								'fields'   => array( 'content_text_color', 'content_typography' ),
+								'fields'   => array( 'content_typography' ),
 							),
 						),
 					),
@@ -358,7 +678,7 @@ FLBuilder::register_module('FLAccordionModule', array(
 						'show_alpha'  => true,
 						'preview'     => array(
 							'type'     => 'css',
-							'selector' => '.fl-accordion-button a, .fl-accordion-button-icon',
+							'selector' => '.fl-accordion-button *, .fl-accordion-button-icon',
 							'property' => 'color',
 						),
 					),
@@ -415,14 +735,18 @@ FLBuilder::register_module('FLAccordionModule', array(
 						),
 					),
 					'label_icon'          => array(
-						'type'    => 'icon',
-						'label'   => __( 'Icon', 'fl-builder' ),
-						'default' => 'fas fa-plus',
+						'type'               => 'icon',
+						'label'              => __( 'Icon', 'fl-builder' ),
+						'default'            => 'fas fa-plus',
+						'show_extra_classes' => true,
+						'connections'        => array( 'icon' ),
 					),
 					'label_active_icon'   => array(
-						'type'    => 'icon',
-						'label'   => __( 'Active Icon', 'fl-builder' ),
-						'default' => 'fas fa-minus',
+						'type'               => 'icon',
+						'label'              => __( 'Active Icon', 'fl-builder' ),
+						'default'            => 'fas fa-minus',
+						'show_extra_classes' => true,
+						'connections'        => array( 'icon' ),
 					),
 					'duo_color1'          => array(
 						'label'       => __( 'DuoTone Icon Primary Color', 'fl-builder' ),
@@ -600,12 +924,3 @@ FLBuilder::register_settings_form('accordion_items_form', array(
 		),
 	),
 ));
-
-FLBuilder::register_module_deprecations( 'accordion', [
-	// Register module version (v1) to deprecate old HTML markup & label_tag default value.
-	'v1' => [
-		'defaults' => [
-			'label_tag' => 'a',
-		],
-	],
-] );

@@ -5,8 +5,8 @@
 		?>
 		<div class="fl-content-slider-navigation" aria-label="content slider buttons">
 			<?php if ( 1 === $module->version ) : ?>
-				<a class="slider-prev" href="#" aria-label="previous" role="button"><div class="fl-content-slider-svg-container"><?php include FL_BUILDER_DIR . 'img/svg/arrow-left.svg'; ?></div></a>
-				<a class="slider-next" href="#" aria-label="next" role="button"><div class="fl-content-slider-svg-container"><?php include FL_BUILDER_DIR . 'img/svg/arrow-right.svg'; ?></div></a>
+				<a class="slider-prev" aria-label="previous" role="button" tabindex="0"><div class="fl-content-slider-svg-container"><?php include FL_BUILDER_DIR . 'img/svg/arrow-left.svg'; ?></div></a>
+				<a class="slider-next" aria-label="next" role="button" tabindex="0"><div class="fl-content-slider-svg-container"><?php include FL_BUILDER_DIR . 'img/svg/arrow-right.svg'; ?></div></a>
 			<?php else : ?>
 				<button class="slider-prev fl-content-ui-button" aria-label="previous" type="button"><div class="fl-content-slider-svg-container"><?php include FL_BUILDER_DIR . 'img/svg/arrow-left.svg'; ?></div></button>
 				<button class="slider-next fl-content-ui-button" aria-label="next" type="button"><div class="fl-content-slider-svg-container"><?php include FL_BUILDER_DIR . 'img/svg/arrow-right.svg'; ?></div></button>

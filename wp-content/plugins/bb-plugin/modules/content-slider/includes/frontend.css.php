@@ -289,7 +289,7 @@ for ( $i = 0; $i < count( $settings->slides ); $i++ ) {
 			) );
 
 			FLBuilderCSS::rule( array(
-				'selector' => ".fl-node-$id .fl-slide-$i .fl-slide-cta-button .fl-button-wrap .fl-button:is(a, button):hover span.fl-button-text",
+				'selector' => ".fl-node-$id .fl-slide-$i .fl-slide-cta-button .fl-button-wrap .fl-button:is(a, button):hover > :is( i.fl-button-icon, span.fl-button-text )",
 				'enabled'  => ! empty( $slide->btn_text_hover_color ),
 				'props'    => array(
 					'color' => $slide->btn_text_hover_color,

@@ -74,6 +74,42 @@ class NinjaFirewall_helpers {
 		return $list;
 	}
 
+
+	/**
+	 * Verify the digital signature of a payload.
+	 */
+	public static function verify_signature( $data, $base64_signature, $log = '') {
+
+		if (! function_exists('openssl_verify') || ! defined('OPENSSL_ALGO_SHA256') ) {
+			if ( $log ) {
+				nf_sub_updates_log(
+					$log,
+					__('Error: OpenSSL is required for the digital signature verification',
+					'nfwplus')
+				);
+			}
+			return 0;
+		}
+
+		$public_key = rtrim( file_get_contents( __DIR__ .'/sign.pub') );
+		$pubkeyid   = openssl_pkey_get_public( $public_key );
+		$verify     = openssl_verify(
+			$data, base64_decode( $base64_signature ), $pubkeyid, OPENSSL_ALGO_SHA256
+		);
+
+		if ( $verify != 1 ) {
+			if ( $log ) {
+				nf_sub_updates_log(
+					$log,
+					__('Error: The digital signature is not correct. Data may be corrupt',
+					'nfwplus'),
+				);
+			}
+			return 0;
+		}
+		return 1;
+	}
+
 }
 
 // =====================================================================
