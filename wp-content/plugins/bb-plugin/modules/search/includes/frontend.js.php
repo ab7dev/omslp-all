@@ -7,6 +7,7 @@
 			btnAction: '<?php echo esc_js( $settings->btn_action ); ?>',
 			result: '<?php echo esc_js( $settings->result ); ?>',
 			showCloseBtn: <?php echo 'show' == $settings->fs_close_button ? 'true' : 'false'; ?>,
+			nonce: '<?php echo esc_js( wp_create_nonce( 'fl_search_query' ) ); ?>',
 		});
 	});
 

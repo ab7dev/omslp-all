@@ -15,6 +15,9 @@ new UpdraftPlus_AddOn_FixTime;
 
 class UpdraftPlus_AddOn_FixTime {
 
+	/**
+	 * Class constructor
+	 */
 	public function __construct() {
 		add_filter('updraftplus_schedule_firsttime_files', array($this, 'starttime_files'));
 		add_filter('updraftplus_schedule_firsttime_db', array($this, 'starttime_db'));
@@ -22,6 +25,9 @@ class UpdraftPlus_AddOn_FixTime {
 		add_filter('updraftplus_schedule_showdbopts', array($this, 'schedule_showdbopts'), 10, 2);
 		add_filter('updraftplus_fixtime_ftinfo', array($this, 'return_empty_string'));
 		add_filter('updraftplus_schedule_sametimemsg', array($this, 'schedule_sametimemsg'));
+
+		// Override the timestamp of the scheduled backup event based on the user's predefined schedule setting.
+		add_filter('updraftplus_override_scheduled_backup_event', array($this, 'override_scheduled_backup_event'), 10);
 
 		// Retention rules
 		add_filter('updraftplus_group_backups_for_pruning', array($this, 'group_backups_for_pruning'), 10, 3);
@@ -441,7 +447,7 @@ class UpdraftPlus_AddOn_FixTime {
 		} else {
 			// wp_json_encode() was added in WP 4.1
 			$processed_rules_json = function_exists('wp_json_encode') ? wp_json_encode($processed_rules) : json_encode($processed_rules);
-			echo "var retain_rules_".esc_js($type)." = ".$processed_rules_json.";\n";
+			echo "var retain_rules_".esc_js($type)." = ".$processed_rules_json.";\n";// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON generated via wp_json_encode().
 		}
 	}
 
@@ -449,12 +455,22 @@ class UpdraftPlus_AddOn_FixTime {
 		return htmlspecialchars(__('(at same time as files backup)', 'updraftplus'));
 	}
 
+	/**
+	 * Get the timestamp of the file backup schedule.
+	 *
+	 * @return integer - The timestamp of the file backup schedule
+	 */
 	public function starttime_files() {
-		return $this->compute('files');
+		return $this->calculate_next_schedule_timestamp('files');
 	}
 
+	/**
+	 * Get the timestamp of the database backup schedule.
+	 *
+	 * @return integer - The timestamp of the database backup schedule
+	 */
 	public function starttime_db() {
-		return $this->compute('db');
+		return $this->calculate_next_schedule_timestamp('db');
 	}
 
 	private function parse($start_time) {
@@ -477,7 +493,17 @@ class UpdraftPlus_AddOn_FixTime {
 		return array($start_hour, $start_minute);
 	}
 
-	private function compute($whichtime) {
+	/**
+	 * Calculate the timestamp of the next backup schedule.
+	 *
+	 * @param string       $whichtime  - The backup scheduled time that want to be calculated. It can be a 'db' or 'files'
+	 * @param string       $interval   - The interval of the backup schedule
+	 * @param integer|null $startday   - The starting day of the backup schedule
+	 * @param string       $start_time - The starting time of the backup schedule
+	 *
+	 * @return integer - The timestamp of the schedule start time
+	 */
+	private function calculate_next_schedule_timestamp($whichtime, $interval = 'manual', $startday = null, $start_time = '00:00') {
 		// Returned value should be in UNIX time.
 
 		$unixtime_now = time();
@@ -488,21 +514,22 @@ class UpdraftPlus_AddOn_FixTime {
 		$now_timestring_blogzone = get_date_from_gmt($now_timestring_gmt, 'Y-m-d H:i:s');
 
 		$int_key = ('db' == $whichtime) ? '_database' : '';
-		$sched = (isset($_POST['updraft_interval'.$int_key])) ? $_POST['updraft_interval'.$int_key] : 'manual';
+		$sched = UpdraftPlus_Manipulation_Functions::fetch_superglobal('post', 'updraft_interval'.$int_key, $interval);
+		$startday = UpdraftPlus_Manipulation_Functions::fetch_superglobal('post', 'updraft_startday_'.$whichtime, $startday);
 
 		// HH:MM, in blog time zone
 		// This function is only called from the options validator, so we don't read the current option
 		// $start_time = UpdraftPlus_Options::get_updraft_option('updraft_starttime_'.$whichtime);
-		$start_time = (isset($_POST['updraft_starttime_'.$whichtime])) ? $_POST['updraft_starttime_'.$whichtime] : '00:00';
+		$start_time = UpdraftPlus_Manipulation_Functions::fetch_superglobal('post', 'updraft_starttime_'.$whichtime, $start_time);
 
 		list ($start_hour, $start_minute) = $this->parse($start_time);
 
 		// Was a particular week-day specified?
-		if (isset($_POST['updraft_startday_'.$whichtime]) && ('weekly' == $sched || 'monthly' == $sched || 'fortnightly' == $sched)) {
+		if (isset($startday) && is_numeric($startday) && ('weekly' == $sched || 'monthly' == $sched || 'fortnightly' == $sched)) {
 			// All the monthly stuff is done here, since it has different logic
 			if ('monthly' == $sched) {
 				// Get specified day of the month in range 1-28
-				$startday = min(absint($_POST['updraft_startday_'.$whichtime]), 28);
+				$startday = min(absint($startday), 28);
 				if ($startday < 1) $startday = 1;
 				// Get today's day of month in range 1-31
 // $day_today_blogzone = get_date_from_gmt($now_timestring_gmt, 'j');
@@ -510,17 +537,28 @@ class UpdraftPlus_AddOn_FixTime {
 				$thismonth_timestring = 'Y-m-'.sprintf("%02d", $startday).' '.sprintf("%02d:%02d", $start_hour, $start_minute).':00';
 
 				$thismonth_time = get_date_from_gmt($now_timestring_gmt, $thismonth_timestring);
-				$thismonth_unixtime = get_gmt_from_date($thismonth_time, 'U');
+				$thismonth_unixtime = (int) get_gmt_from_date($thismonth_time, 'U');
 
 				// Is that in the past? If so, then wind on a month.
 				if ($thismonth_unixtime < $unixtime_now) {
-					return strtotime("@".$thismonth_unixtime." + 1 month");
+					$offset = get_option('gmt_offset');
+					$timezone = get_option('timezone_string');
+
+					if (empty($timezone)) {
+						$offset_string = date('H:i', abs($offset)*3600);
+						$timezone = $offset > 0 ? "+$offset_string" : "-$offset_string";
+					}
+
+					// Fix the scheduling issue when using the BST/DST timezone.
+					$dt = new DateTime($thismonth_time, new DateTimeZone($timezone));
+					$dt->modify('+1 month');
+					return (int) get_gmt_from_date($dt->format('c'), 'U');
 				} else {
 					return $thismonth_unixtime;
 				}
 			} else {
 				// Get specified day of week in range 0-6
-				$startday = min(absint($_POST['updraft_startday_'.$whichtime]), 6);
+				$startday = min(absint($startday), 6);
 				// Get today's day of week in range 0-6
 				$day_today_blogzone = get_date_from_gmt($now_timestring_gmt, 'w');
 				if ($day_today_blogzone != $startday) {
@@ -601,5 +639,31 @@ class UpdraftPlus_AddOn_FixTime {
 		if (empty($start_time)) $start_time = '00:00';
 		list ($start_hour, $start_minute) = $this->parse($start_time);
 		return $this->starting_widget($start_hour, $start_minute, 'updraft_startday_files', 'updraft_starttime_files', $selected_interval);
+	}
+
+	/**
+	 * Override the timestamp of the scheduled backup event based on the user's predefined schedule setting.
+	 *
+	 * @param object $event - the scheduled backup event object
+	 * @return object - the overriden scheduled backup event object
+	 */
+	public function override_scheduled_backup_event($event) {
+		if ('updraft_backup_database' == $event->hook) {
+			$backup_entity = 'db';
+			$interval_key = '_database';
+		} else {
+			$backup_entity = 'files';
+			$interval_key = '';
+		}
+
+		// Only override the timestamp on monthly interval and when the user is not updating the schedule settings.
+		if ('monthly' == $event->schedule && !isset($_POST['updraft_interval'.$interval_key])) {
+			$startday = UpdraftPlus_Options::get_updraft_option('updraft_startday_'.$backup_entity, 1);
+			$start_time = UpdraftPlus_Options::get_updraft_option('updraft_starttime_'.$backup_entity, '00:00');
+
+			$event->timestamp = $this->calculate_next_schedule_timestamp($backup_entity, $event->schedule, $startday, $start_time);
+		}
+
+		return $event;
 	}
 }

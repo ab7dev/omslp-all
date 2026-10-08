@@ -2,12 +2,14 @@
 
 $form_selector      = ".fl-node-$id .fl-search-form";
 $form_selector_wrap = ".fl-node-$id .fl-search-form-wrap";
+$form_input_wrap    = ".fl-node-$id .fl-search-button-reveal .fl-search-form-input-wrap";
+$label_selector     = ".fl-node-$id .fl-search-form-label";
 $input_selector     = ".fl-node-$id .fl-form-field input[type=search]";
-$input_placeholder  = $input_selector . '::placeholder';
+$is_reveal          = 'button' == $settings->layout && 'reveal' == $settings->btn_action;
 
 // Default form styles
 FLBuilderCSS::rule( array(
-	'selector' => $form_selector_wrap,
+	'selector' => $form_selector_wrap . ', ' . $form_input_wrap,
 	'props'    => array(
 		'font-size' => '16px',
 		'padding'   => '10px',
@@ -45,7 +47,7 @@ FLBuilderCSS::responsive_rule( array(
 
 // Form background color
 FLBuilderCSS::rule( array(
-	'selector' => $form_selector_wrap,
+	'selector' => $is_reveal ? $form_input_wrap : $form_selector_wrap,
 	'props'    => array(
 		'background-color' => $settings->form_bg_color,
 	),
@@ -53,7 +55,7 @@ FLBuilderCSS::rule( array(
 
 // Form hover background
 FLBuilderCSS::rule( array(
-	'selector' => $form_selector_wrap . ':hover',
+	'selector' => $is_reveal ? $form_input_wrap . ':hover' : $form_selector_wrap . ':hover',
 	'props'    => array(
 		'background-color' => $settings->form_bg_hover_color,
 	),
@@ -63,7 +65,7 @@ FLBuilderCSS::rule( array(
 FLBuilderCSS::border_field_rule( array(
 	'settings'     => $settings,
 	'setting_name' => 'form_border',
-	'selector'     => $form_selector_wrap,
+	'selector'     => $is_reveal ? $form_input_wrap : $form_selector_wrap,
 ) );
 
 // Form Border - Hover Settings
@@ -74,7 +76,7 @@ if ( ! empty( $settings->form_border_hover ) && is_array( $settings->form_border
 FLBuilderCSS::border_field_rule( array(
 	'settings'     => $settings,
 	'setting_name' => 'form_border_hover',
-	'selector'     => $form_selector_wrap . ':hover',
+	'selector'     => $is_reveal ? $form_input_wrap . ':hover' : $form_selector_wrap . ':hover',
 ) );
 
 
@@ -82,7 +84,7 @@ FLBuilderCSS::border_field_rule( array(
 FLBuilderCSS::dimension_field_rule( array(
 	'settings'     => $settings,
 	'setting_name' => 'form_padding',
-	'selector'     => $form_selector_wrap,
+	'selector'     => $is_reveal ? $form_input_wrap : $form_selector_wrap,
 	'unit'         => 'px',
 	'props'        => array(
 		'padding-top'    => 'form_padding_top',
@@ -91,6 +93,40 @@ FLBuilderCSS::dimension_field_rule( array(
 		'padding-left'   => 'form_padding_left',
 	),
 ) );
+
+if ( 'show' === $settings->label ) :
+	$label_selector = ".fl-node-$id .fl-search-form-label";
+
+	// Label padding
+	FLBuilderCSS::dimension_field_rule( array(
+		'settings'     => $settings,
+		'setting_name' => 'label_padding',
+		'selector'     => $label_selector,
+		'unit'         => 'px',
+		'props'        => array(
+			'padding-top'    => 'label_padding_top',
+			'padding-right'  => 'label_padding_right',
+			'padding-bottom' => 'label_padding_bottom',
+			'padding-left'   => 'label_padding_left',
+		),
+	) );
+
+	// Label color
+	FLBuilderCSS::rule( array(
+		'selector' => $label_selector,
+		'props'    => array(
+			'color' => $settings->label_color,
+		),
+	) );
+
+	// Label typography
+	FLBuilderCSS::typography_field_rule( array(
+		'settings'     => $settings,
+		'setting_name' => 'label_typography',
+		'selector'     => $label_selector,
+	) );
+
+endif;
 
 // Default input styles
 FLBuilderCSS::rule( array(
@@ -105,7 +141,7 @@ FLBuilderCSS::rule( array(
 
 // Input color
 FLBuilderCSS::rule( array(
-	'selector' => $input_selector . ',' . $input_placeholder,
+	'selector' => $input_selector . ',' . $input_selector . '::placeholder',
 	'enabled'  => ! empty( $settings->input_color ),
 	'props'    => array(
 		'color' => $settings->input_color,

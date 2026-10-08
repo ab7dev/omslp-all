@@ -101,11 +101,11 @@ class FLTabsModule extends FLBuilderModule {
 	 * @return void
 	 */
 	public function set_custom_excerpt_length( $length ) {
-		$exept_length = strval( $this->settings->excerpt_length );
-		if ( trim( $exept_length ) === '' ) {
+		$excerpt_length = strval( $this->settings->excerpt_length );
+		if ( trim( $excerpt_length ) === '' ) {
 			return $length;
 		}
-		return intval( $exept_length );
+		return intval( $excerpt_length );
 	}
 
 	/**

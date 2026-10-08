@@ -40,6 +40,9 @@ final class FLBuilderUserTemplatesAdminAdd {
 			wp_enqueue_style( $slug . 'add', $url . 'css/' . $slug . 'add.css', array(), $version );
 			wp_enqueue_script( $slug . 'add', $url . 'js/' . $slug . 'add.js', array(), $version, true );
 
+			/**
+			 * Configuration array for the Add New template admin screen.
+			 */
 			wp_localize_script( $slug . 'add', 'FLBuilderConfig', apply_filters( 'fl_builder_user_templates_add_new_config', array(
 				'strings' => array(
 					'addButton' => array(
@@ -66,6 +69,9 @@ final class FLBuilderUserTemplatesAdminAdd {
 		$modules       = FLBuilderModel::get_categorized_modules();
 		$selected_type = isset( $_GET['fl-builder-template-type'] ) ? sanitize_key( $_GET['fl-builder-template-type'] ) : '';
 
+		/**
+		 * Array of available template types shown on the Add New template screen.
+		 */
 		$types = apply_filters( 'fl_builder_user_templates_add_new_types', array(
 			100 => array(
 				'key'   => 'layout',
@@ -114,8 +120,11 @@ final class FLBuilderUserTemplatesAdminAdd {
 			return;
 		}
 
-		$title     = sanitize_text_field( $_POST['fl-template']['title'] );
-		$type      = sanitize_text_field( $_POST['fl-template']['type'] );
+		$title = sanitize_text_field( $_POST['fl-template']['title'] );
+		$type  = sanitize_text_field( $_POST['fl-template']['type'] );
+		/**
+		 * Post type used when creating a new user template.
+		 */
 		$post_type = apply_filters( 'fl_builder_user_templates_add_new_post_type', 'fl-builder-template', $type );
 
 		// Insert the post.

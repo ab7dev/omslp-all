@@ -132,12 +132,8 @@ class FLCalloutModule extends FLBuilderModule {
 
 		echo '<' . $this->settings->title_tag . ' class="fl-callout-title">';
 
-		if ( ! empty( $this->settings->link ) && 'icon' === $this->settings->image_type ) {
-			echo '<a href="' . esc_url( do_shortcode( $this->settings->link ) ) . '" ' . ( ( isset( $this->settings->link_download ) && 'yes' === $this->settings->link_download ) ? ' download' : '' ) . ' target="' . esc_attr( $this->settings->link_target ) . '" ' . $this->get_rel() . ' class="fl-callout-title-link fl-callout-title-text">';
-		}
-
-		if ( ! empty( $this->settings->link ) && 'icon' !== $this->settings->image_type ) {
-			echo '<a href="' . esc_url( do_shortcode( $this->settings->link ) ) . '"' . ( ( isset( $this->settings->link_download ) && 'yes' === $this->settings->link_download ) ? ' download' : '' ) . ' target="' . esc_attr( $this->settings->link_target ) . '" ' . $this->get_rel() . ' class="fl-callout-title-link fl-callout-title-text">';
+		if ( ! empty( $this->settings->link ) ) {
+			echo '<a ' . FLBuilderModuleUtils::get_link_attributes( $this->settings, 'link', [ 'class' => 'fl-callout-title-link fl-callout-title-text' ] ) . '>';
 		}
 
 		if ( 'left-title' === $this->settings->icon_position ) {
@@ -174,33 +170,14 @@ class FLCalloutModule extends FLBuilderModule {
 	}
 
 	/**
-	 * Returns link rel based on settings.
-	 * @since 2.5
-	 * @return string
-	 */
-	public function get_rel() {
-		$rel = array();
-		if ( '_blank' == $this->settings->link_target ) {
-			$rel[] = 'noopener';
-		}
-		if ( isset( $this->settings->link_nofollow ) && 'yes' == $this->settings->link_nofollow ) {
-			$rel[] = 'nofollow';
-		}
-		$rel = implode( ' ', $rel );
-		if ( $rel ) {
-			$rel = ' rel="' . $rel . '" ';
-		}
-		return $rel;
-	}
-
-	/**
 	 * @method get_link
 	 */
 	public function get_link() {
 		$html = '';
 
 		if ( 'link' == $this->settings->cta_type ) {
-			$html = '<a href="' . esc_url( do_shortcode( $this->settings->link ) ) . '" ' . ( ( isset( $this->settings->link_download ) && 'yes' === $this->settings->link_download ) ? ' download' : '' ) . '' . $this->get_rel() . ' target="' . esc_attr( $this->settings->link_target ) . '" class="fl-callout-cta-link">' . $this->settings->cta_text . '</a>';
+			$attributes = FLBuilderModuleUtils::get_link_attributes( $this->settings, 'link', [ 'class' => 'fl-callout-cta-link' ] );
+			$html       = '<a ' . $attributes . '>' . $this->settings->cta_text . '</a>';
 		}
 		return $html;
 	}
@@ -293,6 +270,7 @@ class FLCalloutModule extends FLBuilderModule {
 			'align'           => '',
 			'exclude_wrapper' => true,
 			'icon'            => $this->settings->icon,
+			'icon_extra'      => $this->settings->icon_extra ?? '',
 			'text'            => '',
 			'three_d'         => $this->settings->icon_3d,
 			'sr_text'         => $this->settings->sr_text,
@@ -665,9 +643,11 @@ FLBuilder::register_module('FLCalloutModule', array(
 				'title'  => __( 'Icon', 'fl-builder' ),
 				'fields' => array(
 					'icon'          => array(
-						'type'        => 'icon',
-						'label'       => __( 'Icon', 'fl-builder' ),
-						'show_remove' => true,
+						'type'               => 'icon',
+						'label'              => __( 'Icon', 'fl-builder' ),
+						'show_remove'        => true,
+						'connections'        => array( 'icon' ),
+						'show_extra_classes' => true,
 					),
 					'sr_text'       => array(
 						'type'    => 'text',
@@ -894,6 +874,7 @@ FLBuilder::register_module('FLCalloutModule', array(
 						'type'        => 'icon',
 						'label'       => __( 'Button Icon', 'fl-builder' ),
 						'show_remove' => true,
+						'connections' => array( 'icon' ),
 						'show'        => array(
 							'fields' => array( 'btn_icon_position', 'btn_icon_animation' ),
 						),

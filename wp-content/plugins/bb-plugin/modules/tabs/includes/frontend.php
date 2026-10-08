@@ -33,7 +33,10 @@ if ( 'post' == $settings->source ) {
 				$tab_active   = ( ( $active_tab - 1 ) == $i ) ? ' fl-tab-active' : '';
 				$tab_classes  = $tag_classes . $tab_active;
 				$tab_aria     = 'role="tab" aria-selected="' . $tab_selected . '" aria-controls="' . $tab_panel_id . '"';
-				$id_in_label  = apply_filters( 'fl_tabs_id_in_label', false, $settings, $i );
+				/**
+				 * Whether to include the tab's settings ID in the tab label element's `for` attribute.
+				 */
+				$id_in_label = apply_filters( 'fl_tabs_id_in_label', false, $settings, $i );
 
 				if ( $id_in_label && ! empty( $settings->id ) ) {
 					$tab_label_id = esc_attr( $settings->id ) . '-label-' . $i;

@@ -46,7 +46,13 @@
 			return item.content === 'module';
 		});
 		#>
-		<?php if ( ! FLBuilderModel::is_post_user_template( 'row' ) && ! FLBuilderModel::is_post_user_template( 'column' ) && ! FLBuilderModel::is_post_user_template( 'module' ) ) : ?>
+		<?php
+		if ( ! FLBuilderModel::is_post_user_template( 'row' ) &&
+					! FLBuilderModel::is_post_user_template( 'column' ) &&
+					! FLBuilderModel::is_post_user_template( 'module' ) &&
+					! FLThemeBuilderLayoutData::current_post_is( 'popup' )
+				) :
+			?>
 		<div id="fl-builder-blocks-saved-rows" class="fl-builder-blocks-section fl-builder-blocks-node-template" data-collapsible="1">
 
 			<div class="fl-builder-blocks-section-header">
@@ -54,7 +60,7 @@
 					<svg width="20" height="20">
 						<use href="#fl-builder-forms-down-caret" />
 					</svg>
-					<?php _e( 'Saved Rows', 'fl-builder' ); ?>
+										<?php _e( 'Saved Rows', 'fl-builder' ); ?>
 				</span>
 			</div>
 			<div class="fl-builder-blocks-section-content fl-builder-saved-rows">
@@ -83,12 +89,13 @@
 							<# if (row.isGlobal) { #>
 							<div class="fl-builder-badge fl-builder-badge-global<# if ( row.isDynamicEditing ) { #> fl-builder-badge-dynamic<# } #>">
 								<# if ( row.isDynamicEditing ) { #> 
-									<?php _ex( 'Component', 'Indicator for global node templates.', 'fl-builder' ); ?>
+										<?php _ex( 'Component', 'Indicator for global node templates.', 'fl-builder' ); ?>
 								<# } else { #>
-									<?php _ex( 'Global', 'Indicator for global node templates.', 'fl-builder' ); ?>
+										<?php _ex( 'Global', 'Indicator for global node templates.', 'fl-builder' ); ?>
 								<# } #>
 							</div>
 							<# } #>
+							<# if ( ! row.isGlobal || FLBuilderConfig.userCanEditGlobalTemplates ) { #>
 							<span class="fl-builder-node-template-actions">
 								<a class="fl-builder-node-template-edit" href="{{row.link}}" target="_blank">
 									<i class="fas fa-wrench"></i>
@@ -97,6 +104,7 @@
 									<i class="fas fa-times"></i>
 								</a>
 							</span>
+							<# } #>
 						</div>
 					</span>
 				</span>
@@ -105,7 +113,12 @@
 			</div>
 		</div>
 		<?php endif; ?>
-		<?php if ( ! FLBuilderModel::is_post_user_template( 'column' ) && ! FLBuilderModel::is_post_user_template( 'module' ) ) : ?>
+		<?php
+		if ( ! FLBuilderModel::is_post_user_template( 'column' ) &&
+					! FLBuilderModel::is_post_user_template( 'module' ) &&
+					! FLThemeBuilderLayoutData::current_post_is( 'popup' )
+				) :
+			?>
 		<div id="fl-builder-blocks-saved-columns" class="fl-builder-blocks-section fl-builder-blocks-node-template" data-collapsible="1">
 
 			<div class="fl-builder-blocks-section-header">
@@ -148,6 +161,7 @@
 									<# } #>
 								</div>
 								<# } #>
+								<# if ( ! column.isGlobal || FLBuilderConfig.userCanEditGlobalTemplates ) { #>
 								<span class="fl-builder-node-template-actions">
 									<a class="fl-builder-node-template-edit" href="{{column.link}}" target="_blank">
 										<i class="fas fa-wrench"></i>
@@ -156,6 +170,7 @@
 										<i class="fas fa-times"></i>
 									</a>
 								</span>
+								<# } #>
 							</div>
 						</span>
 					</span>
@@ -190,7 +205,7 @@
 						catClasses += ' fl-builder-template-category-' + key;
 					}
 				#>
-				<span class="fl-builder-block fl-builder-block-saved-module{{globalClass}}{{dynamicClass}}{{hasImageClass}}{{catClasses}}" data-id="{{module.id}}">
+				<span class="fl-builder-block fl-builder-block-saved-module{{globalClass}}{{dynamicClass}}{{hasImageClass}}{{catClasses}}" data-id="{{module.id}}" data-type="{{module.moduleType}}">
 					<span class="fl-builder-block-content">
 						<# if ( hasImage ) { #>
 						<div class="fl-builder-block-thumbnail" style="background-image:url({{image}})"></div>
@@ -206,6 +221,7 @@
 								<# } #>
 							</div>
 							<# } #>
+							<# if ( ! module.isGlobal || FLBuilderConfig.userCanEditGlobalTemplates ) { #>
 							<span class="fl-builder-node-template-actions">
 								<a class="fl-builder-node-template-edit" href="{{module.link}}" target="_blank">
 									<i class="fas fa-wrench"></i>
@@ -214,6 +230,7 @@
 									<i class="fas fa-times"></i>
 								</a>
 							</span>
+							<# } #>
 						</div>
 					</span>
 				</span>
@@ -247,7 +264,7 @@
 						catClasses += ' fl-builder-template-category-' + key;
 					}
 			#>
-			<span class="fl-builder-block fl-builder-block-saved-module{{globalClass}}{{dynamicClass}}{{hasImageClass}}{{catClasses}}" data-id="{{module.id}}">
+			<span class="fl-builder-block fl-builder-block-saved-module{{globalClass}}{{dynamicClass}}{{hasImageClass}}{{catClasses}}" data-id="{{module.id}}" data-type="{{module.moduleType}}">
 				<span class="fl-builder-block-content">
 					<# if (hasImage) { #>
 					<div class="fl-builder-block-thumbnail" style="background-image:url({{image}})"></div>
@@ -263,6 +280,7 @@
 							<# } #>
 						</div>
 						<# } #>
+						<# if ( ! module.isGlobal || FLBuilderConfig.userCanEditGlobalTemplates ) { #>
 						<span class="fl-builder-node-template-actions">
 							<a class="fl-builder-node-template-edit" href="{{module.link}}" target="_blank">
 								<i class="fas fa-wrench"></i>
@@ -271,6 +289,7 @@
 								<i class="fas fa-times"></i>
 							</a>
 						</span>
+						<# } #>
 					</div>
 				</span>
 			</span>
@@ -318,6 +337,7 @@
 							<# } #>
 						</div>
 						<# } #>
+						<# if ( ! column.isGlobal || FLBuilderConfig.userCanEditGlobalTemplates ) { #>
 						<span class="fl-builder-node-template-actions">
 							<a class="fl-builder-node-template-edit" href="{{column.link}}" target="_blank">
 								<i class="fas fa-wrench"></i>
@@ -326,6 +346,7 @@
 								<i class="fas fa-times"></i>
 							</a>
 						</span>
+						<# } #>
 					</div>
 				</span>
 			</span>
@@ -372,6 +393,7 @@
 							<# } #>
 						</div>
 						<# } #>
+						<# if ( ! row.isGlobal || FLBuilderConfig.userCanEditGlobalTemplates ) { #>
 						<span class="fl-builder-node-template-actions">
 							<a class="fl-builder-node-template-edit" href="{{row.link}}" target="_blank">
 								<i class="fas fa-wrench"></i>
@@ -380,6 +402,7 @@
 								<i class="fas fa-times"></i>
 							</a>
 						</span>
+						<# } #>
 					</div>
 				</span>
 			</span>

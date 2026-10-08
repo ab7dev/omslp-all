@@ -2,9 +2,6 @@
 body.rtl .fl-module-content-slider .bx-viewport {
 	direction: ltr;
 }
-.fl-module-content-slider .bx-wrapper {
-	margin: 0 auto 40px;
-}
 .fl-content-slider {
 	position: relative;
 }
@@ -164,9 +161,5 @@ body.rtl .fl-module-content-slider .bx-viewport {
 .bx-controls a.disabled,
 .bx-controls button.disabled {
 	cursor: not-allowed;
-	pointer-events: none;
-}
-
-.fl-content-slider-navigation button:focus {
-	outline: 1px auto -webkit-focus-ring-color;
+	opacity: .2;
 }

@@ -19,9 +19,6 @@ body.rtl .fl-testimonials-wrap .fl-testimonial {
 	place-self: stretch;
 }
 
-.fl-module-testimonials .bx-wrapper {
-	margin: 0 auto 35px;
-}
 .fl-testimonials-wrap {
 	position: relative;
 }
@@ -101,6 +98,8 @@ body.rtl .fl-testimonials-wrap .fl-testimonial {
 .fl-testimonials-wrap .fl-slider-prev button.disabled,
 .fl-testimonials-wrap .bx-controls button.disabled {
 	pointer-events: none;
+	cursor: not-allowed;
+	opacity: .2;
 }
 .fl-testimonials-wrap .fl-slider-next button:focus,
 .fl-testimonials-wrap .fl-slider-prev button:focus {

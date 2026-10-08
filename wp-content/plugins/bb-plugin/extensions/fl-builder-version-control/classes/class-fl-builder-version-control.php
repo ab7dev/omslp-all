@@ -54,9 +54,18 @@ class FLBuilderVersionControl {
 
 	public function add_menu( $menu ) {
 
+		// Only expose Version Control when debug mode is on AND the site has
+		// an active license — the tab installs versioned builds from updates.
+		$debug_enabled = (bool) get_transient( 'fl_debug_mode' );
+		$valid_license = false;
+		if ( FLUpdater::get_subscription_license() ) {
+			$info          = FLUpdater::get_subscription_info();
+			$valid_license = ! empty( $info->active );
+		}
+
 		$menu['versions'] = array(
 			'title'    => __( 'Version Control', 'fl-builder' ),
-			'show'     => true,
+			'show'     => $debug_enabled && $valid_license,
 			'priority' => 999,
 		);
 		return $menu;
@@ -88,6 +97,11 @@ class FLBuilderVersionControl {
 
 	public function scripts() {
 		if ( ! current_user_can( 'install_plugins' ) ) {
+			return;
+		}
+		// Only load on the BB settings / network settings pages where the
+		// version control form (rollback UI) renders.
+		if ( ! isset( $_GET['page'] ) || ! in_array( $_GET['page'], array( 'fl-builder-settings', 'fl-builder-multisite-settings' ), true ) ) {
 			return;
 		}
 		wp_enqueue_script( 'fl-version-control', FL_BUILDER_VERSION_CONTROL_PLUGINS_URL . 'js/version-control.js', array( 'jquery' ), FL_BUILDER_VERSION, true );

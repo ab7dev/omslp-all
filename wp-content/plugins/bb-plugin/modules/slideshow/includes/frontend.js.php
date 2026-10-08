@@ -45,9 +45,7 @@ if ( ! empty( $source ) ) :
 					pinterestButtonEnabled: <?php echo esc_js( $settings->pinterest ); ?>,
 					protect: <?php echo esc_js( $settings->protect ); ?>,
 					randomize: <?php echo esc_js( $settings->randomize ); ?>,
-					<?php if ( $global_settings->responsive_enabled ) : ?>
-					responsiveThreshold: <?php echo $global_settings->responsive_breakpoint; ?>,
-					<?php endif; ?>
+					responsiveThreshold: 0,
 					source: [{<?php echo $source; ?>}],
 					speed: <?php echo intval( $settings->speed ) * 1000; ?>,
 					tweetButtonEnabled: <?php echo esc_js( $settings->twitter ); ?>,
@@ -59,6 +57,45 @@ if ( ! empty( $source ) ) :
 
 			if(oldSlideshow) {
 				oldSlideshow.remove(true);
+			}
+
+			// Responsive height handling.
+			if ( <?php echo $global_settings->responsive_enabled ? 'true' : 'false'; ?> ) {
+				var height = <?php echo esc_js( $settings->height ); ?>;
+				var heightLarge = <?php echo isset( $settings->height_large ) && '' !== $settings->height_large ? esc_js( $settings->height_large ) : 'null'; ?>;
+				var heightMedium = <?php echo isset( $settings->height_medium ) && '' !== $settings->height_medium ? esc_js( $settings->height_medium ) : 'null'; ?>;
+				var heightResponsive = <?php echo isset( $settings->height_responsive ) && '' !== $settings->height_responsive ? esc_js( $settings->height_responsive ) : 'null'; ?>;
+				var largeBreakpoint = <?php echo $global_settings->large_breakpoint; ?>;
+				var mediumBreakpoint = <?php echo $global_settings->medium_breakpoint; ?>;
+				var responsiveBreakpoint = <?php echo $global_settings->responsive_breakpoint; ?>;
+
+				function updateSlideshowHeight( shouldRender = true ) {
+					var windowWidth = Y.one('body').get('winWidth');
+					var newHeight = height;
+
+					if ( windowWidth <= responsiveBreakpoint && heightResponsive !== null ) {
+						newHeight = heightResponsive;
+					} else if ( windowWidth <= mediumBreakpoint && heightMedium !== null ) {
+						newHeight = heightMedium;
+					} else if ( windowWidth <= largeBreakpoint && heightLarge !== null ) {
+						newHeight = heightLarge;
+					}
+
+					if ( newHeight !== newSlideshow.get('height') ) {
+						newSlideshow.set('height', newHeight);
+						if ( shouldRender ) {
+							newSlideshow.resize();
+						}
+					}
+				}
+
+				// Update height on window resize
+				Y.one(window).on('resize', Y.bind(function() {
+					updateSlideshowHeight( true );
+				}, this));
+				
+				// Initial height update without rendering
+				updateSlideshowHeight( false );
 			}
 
 			newSlideshow.render('.fl-node-<?php echo $id; ?> .fl-slideshow-container');

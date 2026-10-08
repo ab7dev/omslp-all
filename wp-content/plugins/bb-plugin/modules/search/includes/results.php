@@ -36,7 +36,7 @@
 	else :
 		?>
 		<div class="fl-search-no-posts">
-			<p><?php echo $settings->no_results_message; ?></p>
+			<p><?php echo esc_html( $settings->no_results_message ); ?></p>
 		</div>
 		<?php
 

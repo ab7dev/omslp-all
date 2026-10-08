@@ -3,7 +3,7 @@ Contributors: nintechnet
 Tags: security, firewall, malware, virus, protection
 Requires at least: 4.9
 Tested up to: 7.0
-Stable tag: 4.9
+Stable tag: 4.9.1
 Requires PHP: 7.1
 License: Modification and distribution of this software require express written permission from the author ~ (c) NinTechNet Limited
 
@@ -160,6 +160,10 @@ NinjaFirewall includes GeoLite data created by MaxMind, available from http://ww
 1. Upload `nfwplus` folder to the `/wp-content/plugins/` directory.
 2. Activate the plugin through the 'Plugins' menu in WordPress.
 3. Plugin settings are located in 'NinjaFirewall+' menu.
+
+= 4.9.1 =
+
+* Behind-the-scenes update: A lot of code was rewritten in this release to make NinjaFirewall better. That includes Centralised Logging, Login Protection, File Guard, rules and notification update, configuration import/export, firewall engine (data transformation and normalization) etc., as well as many small fixes and adjustments.
 
 = 4.9 =
 

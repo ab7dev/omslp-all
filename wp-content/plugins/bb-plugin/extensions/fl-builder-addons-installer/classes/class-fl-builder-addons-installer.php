@@ -20,10 +20,9 @@ class FLBuilderAddonsInstaller {
 		add_action( 'init', function () {
 			$this->strings = array(
 				'install'   => __( 'Install', 'fl-builder' ),
-				'installed' => sprintf( ' - <em>%s</em>', __( 'Installed', 'fl-builder' ) ),
+				'installed' => __( 'Installed', 'fl-builder' ),
 				'activate'  => __( 'Activate', 'fl-builder' ),
-				'upgrade'   => __( 'Upgrade', 'fl-builder' ),
-				'downgrade' => __( 'Downgrade', 'fl-builder' ),
+				'reinstall' => __( 'Reinstall', 'fl-builder' ),
 				'activated' => __( 'Activated', 'fl-builder' ),
 			);
 		});
@@ -120,12 +119,18 @@ class FLBuilderAddonsInstaller {
 	}
 
 	public function scripts() {
+		// Only load on the BB settings / network settings pages where the
+		// subscription downloads list (Install/Activate buttons) renders.
+		if ( ! isset( $_GET['page'] ) || ! in_array( $_GET['page'], array( 'fl-builder-settings', 'fl-builder-multisite-settings' ), true ) ) {
+			return;
+		}
 		wp_enqueue_script( 'bb-addon-scripts', FL_BUILDER_ADDONS_PLUGINS_URL . 'js/addons-installer.js', array( 'jquery' ), FL_BUILDER_VERSION, true );
 		wp_localize_script( 'bb-addon-scripts', 'bb_addon_data', array(
 			'install'     => __( 'Install', 'fl-builder' ),
 			'installed'   => __( 'Installed', 'fl-builder' ),
 			'activate'    => __( 'Activate', 'fl-builder' ),
 			'activated'   => __( 'Activated', 'fl-builder' ),
+			'reinstall'   => __( 'Reinstall', 'fl-builder' ),
 			'wait'        => __( 'Installing Please Wait', 'fl-builder' ),
 			'plugins_url' => admin_url( 'plugins.php' ),
 			'themes_url'  => admin_url( 'themes.php' ),
@@ -139,51 +144,105 @@ class FLBuilderAddonsInstaller {
 		}
 		$themes = wp_get_themes();
 		$theme  = wp_get_theme();
+
 		foreach ( $downloads as $k => $download ) {
-			$installed_txt = $this->strings['installed'];
+			$name        = $download;
+			$status_html = '';
+			$actions     = '';
+
 			switch ( $download ) {
 				case 'Beaver Builder Theme':
-					$installed        = isset( $themes['bb-theme'] );
-					$active           = 'bb-theme' === get_stylesheet() || 'bb-theme' === $theme->get( 'Template' );
-					$installed_txt    = $installed && ! $active ? sprintf( ' - <a href="%s">%s</a>', admin_url( 'themes.php' ), $this->strings['activate'] ) : $installed_txt;
-					$downloads[ $k ] .= $installed ? $installed_txt : $this->get_theme_install_link( 'bb-theme' );
+					$installed = isset( $themes['bb-theme'] );
+					$active    = 'bb-theme' === get_stylesheet() || 'bb-theme' === $theme->get( 'Template' );
+					if ( $installed ) {
+						$status_html = $this->_status_html( 'installed' );
+						if ( ! $active ) {
+							$actions .= sprintf( '<a href="%s" class="fl-download-action fl-download-action-primary">%s</a>', admin_url( 'themes.php' ), $this->strings['activate'] );
+						}
+						$actions .= $this->_reinstall_link( 'theme', 'bb-theme' );
+					} else {
+						$status_html = $this->_status_html( 'not-installed' );
+						$actions    .= $this->_install_button( 'theme', 'bb-theme' );
+					}
 					break;
 
 				case 'Beaver Builder Child Theme':
-					$installed        = isset( $themes['bb-theme-child'] );
-					$active           = 'bb-theme' === $theme->get( 'Template' );
-					$installed_txt    = $installed && ! $active ? sprintf( ' - <a href="%s">%s</a>', admin_url( 'themes.php' ), $this->strings['activate'] ) : $installed_txt;
-					$downloads[ $k ] .= $installed ? $installed_txt : $this->get_theme_install_link( 'bb-theme-child' );
+					$installed = isset( $themes['bb-theme-child'] );
+					$active    = 'bb-theme' === $theme->get( 'Template' );
+					if ( $installed ) {
+						$status_html = $this->_status_html( 'installed' );
+						if ( ! $active ) {
+							$actions .= sprintf( '<a href="%s" class="fl-download-action fl-download-action-primary">%s</a>', admin_url( 'themes.php' ), $this->strings['activate'] );
+						}
+						$actions .= $this->_reinstall_link( 'theme', 'bb-theme-child' );
+					} else {
+						$status_html = $this->_status_html( 'not-installed' );
+						$actions    .= $this->_install_button( 'theme', 'bb-theme-child' );
+					}
 					break;
 
 				case 'Beaver Themer':
-					$installed        = $this->check_plugin_installed( 'bb-theme-builder/bb-theme-builder.php' );
-					$installed_txt    = $installed && ! is_plugin_active( 'bb-theme-builder/bb-theme-builder.php' ) ? sprintf( ' - <a class="fl-installer-addon-activate" data-type="plugin" data-slug="bb-theme-builder/bb-theme-builder.php" href="#">%s</a>', $this->strings['activate'] ) : $installed_txt;
-					$downloads[ $k ] .= $installed ? $installed_txt : $this->get_plugin_install_link( 'bb-theme-builder' );
+					$installed = $this->check_plugin_installed( 'bb-theme-builder/bb-theme-builder.php' );
+					if ( $installed ) {
+						$status_html = $this->_status_html( 'installed' );
+						if ( ! is_plugin_active( 'bb-theme-builder/bb-theme-builder.php' ) ) {
+							$actions .= sprintf(
+								'<a class="fl-download-action fl-download-action-primary fl-installer-addon-activate" data-type="plugin" data-slug="bb-theme-builder/bb-theme-builder.php" href="#">%s</a>',
+								$this->strings['activate']
+							);
+						}
+						$actions .= $this->_reinstall_link( 'plugin', 'bb-theme-builder' );
+					} else {
+						$status_html = $this->_status_html( 'not-installed' );
+						$actions    .= $this->_install_button( 'plugin', 'bb-theme-builder' );
+					}
 					break;
 			}
-			// handle BB upgrades/downgrades
+
+			// Handle BB Plugin entries
 			if ( stristr( $download, 'beaver builder plugin' ) ) {
-				// get installed version.
 				$plugin = WP_PLUGIN_DIR . '/bb-plugin/fl-builder.php';
 				if ( file_exists( $plugin ) ) {
-					$data = get_plugin_data( $plugin );
-					if ( $data['Name'] !== $download ) {
-						// handle up/downgrade
-						$current      = $this->_get_plugin_version( $data['Name'] );
-						$install      = $this->_get_plugin_version( $download );
-						$install_text = 'Upgrade'; //default
-						switch ( $install ) {
-							case 'Pro':
-							case 'Standard':
-								if ( 'Agency' === $current || 'Pro' === $current ) {
-									$install_text = 'Downgrade';
-								}
-								break;
-						}
-						$downloads[ $k ] .= $this->get_plugin_install_link( 'bb-plugin-' . strtolower( $install ), sprintf( '%s %s to %s', $install_text, $current, $install ) );
+					$data    = get_plugin_data( $plugin );
+					$install = $this->_get_plugin_version( $download );
+
+					if ( $data['Name'] === $download ) {
+						// Currently installed version — show installed + reinstall
+						$status_html = $this->_status_html( 'installed' );
+						$slug        = 'bb-plugin-' . strtolower( $install );
+						$actions    .= $this->_reinstall_link( 'plugin', $slug );
+					} elseif ( $data['Name'] !== $download ) {
+						// Different version available — show install link
+						$current     = $this->_get_plugin_version( $data['Name'] );
+						$status_html = $this->_status_html( 'not-installed' );
+						$actions    .= $this->_install_button(
+							'plugin',
+							'bb-plugin-' . strtolower( $install ),
+							sprintf(
+								/* translators: %s: Version name (e.g. Pro, Agency) */
+								__( 'Install %s Version', 'fl-builder' ),
+								$install
+							)
+						);
 					}
+				} else {
+					// BB Plugin not installed at all
+					$install     = $this->_get_plugin_version( $download );
+					$status_html = $this->_status_html( 'not-installed' );
+					$actions    .= $this->_install_button( 'plugin', 'bb-plugin-' . strtolower( $install ) );
 				}
+			}
+
+			// Build the card content
+			if ( ! empty( $status_html ) || ! empty( $actions ) ) {
+				$downloads[ $k ] = sprintf(
+					'<span class="fl-download-name">%s</span><span class="fl-download-meta">%s%s</span>',
+					esc_html( $name ),
+					$status_html,
+					! empty( $actions ) ? '<span class="fl-download-actions">' . $actions . '</span>' : ''
+				);
+			} else {
+				$downloads[ $k ] = sprintf( '<span class="fl-download-name">%s</span>', esc_html( $name ) );
 			}
 		}
 		return $downloads;
@@ -198,9 +257,45 @@ class FLBuilderAddonsInstaller {
 		return array_key_exists( $plugin_slug, $installed_plugins ) || in_array( $plugin_slug, $installed_plugins, true );
 	}
 
+	/**
+	 * Generates a styled install button.
+	 */
+	private function _install_button( $type, $slug, $custom = '' ) {
+		$text = $custom ? $custom : $this->strings['install'];
+		return sprintf(
+			'<a href="#" class="fl-download-action fl-download-action-primary fl-installer-addon" data-type="%s" data-slug="%s">%s</a>',
+			esc_attr( $type ),
+			esc_attr( $slug ),
+			esc_html( $text )
+		);
+	}
+
+	/**
+	 * Generates a reinstall link.
+	 */
+	private function _reinstall_link( $type, $slug ) {
+		return sprintf(
+			'<a href="#" class="fl-download-action fl-installer-addon fl-reinstall-addon" data-type="%s" data-slug="%s">%s</a>',
+			esc_attr( $type ),
+			esc_attr( $slug ),
+			esc_html( $this->strings['reinstall'] )
+		);
+	}
+
+	/**
+	 * Generates a status badge.
+	 */
+	private function _status_html( $status ) {
+		if ( 'installed' === $status ) {
+			return '<span class="fl-download-status fl-download-status-installed"><span class="dashicons dashicons-yes-alt"></span> ' . esc_html( $this->strings['installed'] ) . '</span>';
+		}
+		return '<span class="fl-download-status fl-download-status-available"><span class="dashicons dashicons-download"></span> ' . __( 'Available', 'fl-builder' ) . '</span>';
+	}
+
+	// Keep old methods for backwards compatibility with third-party filters
 	public function get_plugin_install_link( $plugin, $custom = '' ) {
 		$install_text = $custom ? $custom : $this->strings['install'];
-		return sprintf( ' - <a href="#" class="fl-installer-addon" data-type="plugin" data-slug="%s">%s</a>', $plugin, $install_text );
+		return sprintf( ' - <a href="#" class="fl-installer-addon" data-type="plugin" data-slug="%s">%s</a>', esc_attr( $plugin ), esc_html( $install_text ) );
 	}
 
 	public function get_theme_install_link( $theme ) {

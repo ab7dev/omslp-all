@@ -1,22 +1,32 @@
 <?php
 
-FLBuilderCSS::rule( array(
-	'selector' => ".fl-builder-content .fl-node-$id .fl-testimonials .fl-testimonial, .fl-builder-content .fl-node-$id .fl-testimonials .fl-testimonial *",
-	'props'    => array(
-		'color' => $settings->text_color,
-	),
+FLBuilderCSS::responsive_rule( array(
+	'settings'     => $settings,
+	'setting_name' => 'text_color',
+	'selector'     => ".fl-builder-content .fl-node-$id .fl-testimonials :is(.fl-testimonial, .fl-testimonial *)",
+	'prop'         => 'color',
 ) );
 
 FLBuilderCSS::typography_field_rule( array(
 	'settings'     => $settings,
 	'setting_name' => 'text_typography',
-	'selector'     => ".fl-builder-content .fl-node-$id .fl-testimonials .fl-testimonial",
+	'selector'     => ".fl-builder-content .fl-node-$id .fl-testimonials :is(.fl-testimonial, .fl-testimonial *)",
+) );
+
+FLBuilderCSS::responsive_rule( array(
+	'settings'     => $settings,
+	'setting_name' => 'heading_color',
+	'selector'     => ".fl-builder-content .fl-node-$id .fl-testimonials-wrap.compact h3",
+	'prop'         => 'color',
+) );
+
+FLBuilderCSS::typography_field_rule( array(
+	'settings'     => $settings,
+	'setting_name' => 'heading_typography',
+	'selector'     => ".fl-builder-content .fl-node-$id .fl-testimonials-wrap.compact h3",
 ) );
 
 ?>
-.fl-node-<?php echo $id; ?> .fl-testimonials-wrap.compact h3 {
-	font-size: <?php echo $settings->heading_size; ?>px;
-}
 <?php if ( 1 === $module->version ) : ?>
 .fl-node-<?php echo $id; ?> .fl-testimonials-wrap .bx-pager.bx-default-pager a,
 .fl-node-<?php echo $id; ?> .fl-testimonials-wrap .bx-pager.bx-default-pager a:focus,
@@ -38,10 +48,17 @@ FLBuilderCSS::typography_field_rule( array(
 	opacity: 0.2;
 }
 <?php endif; ?>
-.fl-node-<?php echo $id; ?> .fl-testimonials-wrap .fas:hover,
-.fl-node-<?php echo $id; ?> .fl-testimonials-wrap .fas {
-	color: <?php echo FLBuilderColor::hex_or_rgb( $settings->arrow_color ); ?>;
-}
+<?php
+FLBuilderCSS::responsive_rule( array(
+	'settings'     => $settings,
+	'setting_name' => 'arrow_color',
+	'selector'     => array(
+		".fl-node-$id .fl-testimonials-wrap .fas:hover",
+		".fl-node-$id .fl-testimonials-wrap .fas",
+	),
+	'prop'         => 'color',
+) );
+?>
 .fl-node-<?php echo $id; ?> .fl-testimonials-wrap.fl-testimonials-no-heading {
 	padding-top: 25px;
 }

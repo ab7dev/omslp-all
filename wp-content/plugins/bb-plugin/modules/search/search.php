@@ -44,6 +44,10 @@ class FLSearchModule extends FLBuilderModule {
 	 * @method search_query
 	 */
 	public function search_query() {
+		if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['nonce'] ) ), 'fl_search_query' ) ) {
+			die();
+		}
+
 		$post_id          = isset( $_POST['post_id'] ) ? $_POST['post_id'] : false;
 		$node_id          = isset( $_POST['node_id'] ) ? sanitize_text_field( $_POST['node_id'] ) : false;
 		$template_id      = isset( $_POST['template_id'] ) ? sanitize_text_field( $_POST['template_id'] ) : false;
@@ -69,7 +73,7 @@ class FLSearchModule extends FLBuilderModule {
 		$s = preg_replace( '/\s+/', ' ', $s );
 
 		$args->keyword     = $s;
-		$args->post_type   = 'any';
+		$args->post_type   = isset( $settings->post_type ) && ! empty( $settings->post_type ) ? $settings->post_type : 'any';
 		$args->post_status = 'publish';
 		$args->settings    = $settings;
 
@@ -266,14 +270,56 @@ class FLSearchModule extends FLBuilderModule {
 	}
 
 	/**
+	 * Return the wrapper element attributes.
+	 *
+	 * @since 2.11
+	 * @method get_wrapper_attributes
+	 * @return string
+	 */
+	public function get_wrapper_attributes() {
+		$attributes = array(
+			( 2 < $this->version ) ? 'search' : 'div role="search"',
+			'class="' . FLBuilderUtils::sanitize_html_class( $this->get_form_classes() ) . '"',
+		);
+		if ( isset( $this->template_id ) ) {
+			$attributes[] = 'data-template-id="' . $this->template_id . '" data-template-node-id="' . $this->template_node_id . '"';
+		}
+		return join( ' ', $attributes );
+	}
+
+	/**
+	 * Returns the input field attributes.
+	 *
+	 * @since 2.11
+	 * @method get_input_attributes
+	 * @return string
+	 */
+	public function get_input_attributes() {
+		return join( ' ', array(
+			'name="s"',
+			'type="search"',
+			'class="fl-search-text"',
+			'id="search-input-' . $this->node . '"',
+			'aria-describedby="search-error-' . $this->node . '"',
+			'placeholder="' . esc_attr( $this->settings->placeholder ) . '"',
+			'minLength="' . ( ( 'ajax' === $this->settings->result ) ? 3 : 1 ) . '"',
+			'value="' . get_search_query() . '"',
+			'required',
+		) );
+	}
+
+	/**
 	 * Returns an array of settings used to render a button module.
 	 *
+	 * @since 2.10
+	 * @method get_button_settings
 	 * @return array
 	 */
-	public function get_button_settings() {
+	public function get_button_settings( $submit = false ) {
 		$settings = array(
 			'width'        => 'auto',
 			'click_action' => 'button',
+			'button_type'  => 'button' === $this->settings->layout && ! $submit ? 'button' : 'submit',
 		);
 
 		foreach ( $this->settings as $key => $value ) {
@@ -301,18 +347,19 @@ class FLSearchModule extends FLBuilderModule {
 	public function get_button_version() {
 		switch ( $this->version ) {
 			case 1:
+			case 2:
 				return 2;
 			default:
-				return 2;  // Temporary lock on this version only until further changes are ready for the next version
+				return null;
 		}
 	}
 
 	/**
 	 * Renders button.
 	 */
-	public function render_button() {
+	public function render_button( $submit = false ) {
 		if ( 'input' != $this->settings->layout ) {
-			FLBuilder::render_module_html( 'button', $this->get_button_settings(), $this->get_button_version() );
+			FLBuilder::render_module_html( 'button', $this->get_button_settings( $submit ), $this->get_button_version() );
 		}
 	}
 }
@@ -332,13 +379,10 @@ FLBuilder::register_module('FLSearchModule', array(
 						'label'   => __( 'Layout', 'fl-builder' ),
 						'default' => 'inline',
 						'options' => array(
-							'input'   => __( 'Input Text Only', 'fl-builder' ),
-							'inline'  => __( 'Inline', 'fl-builder' ),
+							'input'   => __( 'Input Only', 'fl-builder' ),
+							'inline'  => __( 'All Inline', 'fl-builder' ),
 							'button'  => __( 'Button Only', 'fl-builder' ),
-							'stacked' => __( 'Stacked', 'fl-builder' ),
-
-							//  TODO:
-							// 'combine' => __( 'Combine', 'fl-builder' ),
+							'stacked' => __( 'All Stacked', 'fl-builder' ),
 						),
 						'toggle'  => array(
 							'input'   => array(
@@ -346,20 +390,39 @@ FLBuilder::register_module('FLSearchModule', array(
 								'sections' => array( 'form_style' ),
 							),
 							'inline'  => array(
-								'fields'   => array( 'placeholder', 'btn_text' ),
+								'fields'   => array( 'label', 'placeholder', 'btn_text' ),
 								'sections' => array( 'button_icon', 'form_style', 'button_style', 'button_icon_color' ),
 							),
 							'stacked' => array(
-								'fields'   => array( 'placeholder', 'btn_text', 'btn_align', 'btn_width' ),
+								'fields'   => array( 'label', 'placeholder', 'btn_text', 'btn_align', 'btn_width' ),
 								'sections' => array( 'button_icon', 'form_style', 'button_style', 'button_icon_color' ),
 							),
-							// 'combine' => array(
-							//  'fields'   => array( 'placeholder', 'btn_text' ),
-							//  'sections' => array( 'form_style', 'button_style' ),
-							// ),
 							'button'  => array(
 								'fields'   => array( 'placeholder', 'btn_action', 'btn_text', 'btn_align', 'btn_width' ),
 								'sections' => array( 'button_icon', 'button_style', 'form_style', 'button_icon_color' ),
+							),
+						),
+						'set'     => array(
+							'input'  => array(
+								'label' => 'hide',
+							),
+							'button' => array(
+								'label'      => 'hide',
+								'btn_action' => 'expand',
+							),
+						),
+					),
+					'label'           => array(
+						'type'    => 'select',
+						'label'   => __( 'Input Label', 'fl-builder' ),
+						'default' => 'show',
+						'options' => array(
+							'show' => __( 'Show', 'fl-builder' ),
+							'hide' => __( 'Hide', 'fl-builder' ),
+						),
+						'toggle'  => array(
+							'show' => array(
+								'sections' => array( 'label_style' ),
 							),
 						),
 					),
@@ -389,9 +452,7 @@ FLBuilder::register_module('FLSearchModule', array(
 						'options' => array(
 							'expand'     => __( 'Expand on click', 'fl-builder' ),
 							'fullscreen' => __( 'Full Screen', 'fl-builder' ),
-
-							// TODO:
-							// 'reveal'     => __( 'Reveal', 'fl-builder' ),
+							'reveal'     => __( 'Reveal', 'fl-builder' ),
 						),
 						'toggle'  => array(
 							'expand'     => array(
@@ -400,9 +461,20 @@ FLBuilder::register_module('FLSearchModule', array(
 							'fullscreen' => array(
 								'sections' => array( 'fullscreen_style' ),
 							),
+							'reveal'     => array(
+								'fields' => array( 'label' ),
+							),
+						),
+						'set'     => array(
+							'expand'     => array(
+								'label' => 'hide',
+							),
+							'fullscreen' => array(
+								'label' => 'hide',
+							),
 						),
 						'preview' => array(
-							'type' => 'none',
+							'type' => 'refresh',
 						),
 
 					),
@@ -427,6 +499,7 @@ FLBuilder::register_module('FLSearchModule', array(
 						'type'        => 'icon',
 						'label'       => __( 'Icon', 'fl-builder' ),
 						'show_remove' => true,
+						'connections' => array( 'icon' ),
 						'show'        => array(
 							'fields'   => array( 'btn_icon_position' ),
 							'sections' => array( 'button_icon_color' ),
@@ -476,8 +549,8 @@ FLBuilder::register_module('FLSearchModule', array(
 	'style'   => array(
 		'title'    => __( 'Style', 'fl-builder' ),
 		'sections' => array(
-			'general_style'     => array(
-				'title'  => '',
+			'form_style'       => array(
+				'title'  => 'Form',
 				'fields' => array(
 					'width'               => array(
 						'type'    => 'select',
@@ -546,8 +619,21 @@ FLBuilder::register_module('FLSearchModule', array(
 						'responsive' => true,
 						'preview'    => array(
 							'type'     => 'css',
-							'selector' => '.fl-search-form',
+							'selector' => '{node} .fl-search-form',
 							'property' => 'text-align',
+						),
+					),
+					'form_padding'        => array(
+						'type'       => 'dimension',
+						'label'      => __( 'Padding', 'fl-builder' ),
+						'default'    => '10',
+						'responsive' => true,
+						'slider'     => true,
+						'units'      => array( 'px' ),
+						'preview'    => array(
+							'type'     => 'css',
+							'selector' => '{node}.fl-module-search .fl-search-form-wrap',
+							'property' => 'padding',
 						),
 					),
 					'form_bg_color'       => array(
@@ -589,24 +675,115 @@ FLBuilder::register_module('FLSearchModule', array(
 							'type' => 'none',
 						),
 					),
-					'form_padding'        => array(
+				),
+			),
+			'fullscreen_style' => array(
+				'title'  => 'Fullscreen',
+				'fields' => array(
+					'fs_input_width'  => array(
+						'type'     => 'unit',
+						'label'    => __( 'Input Width', 'fl-builder' ),
+						'default'  => '600',
+						'sanitize' => 'absint',
+						'units'    => array( 'px', '%' ),
+						'slider'   => array(
+							'min'  => 0,
+							'max'  => 1100,
+							'step' => 10,
+						),
+						'help'     => __( 'The max width of the input field inside the lightbox.', 'fl-builder' ),
+						'preview'  => array(
+							'type' => 'none',
+						),
+					),
+					'fs_overlay_bg'   => array(
+						'type'        => 'color',
+						'label'       => __( 'Overlay Background Color', 'fl-builder' ),
+						'show_reset'  => true,
+						'show_alpha'  => true,
+						'connections' => array( 'color' ),
+						'preview'     => array(
+							'type' => 'none',
+						),
+					),
+					'fs_close_button' => array(
+						'type'    => 'select',
+						'label'   => __( 'Close Button', 'fl-builder' ),
+						'default' => 'show',
+						'options' => array(
+							'hide' => __( 'Hide', 'fl-builder' ),
+							'show' => __( 'Show', 'fl-builder' ),
+						),
+						'preview' => array(
+							'type' => 'none',
+						),
+					),
+				),
+			),
+			'label_style'      => array(
+				'title'  => __( 'Label', 'fl-builder' ),
+				'fields' => array(
+					'label_padding'    => array(
 						'type'       => 'dimension',
 						'label'      => __( 'Padding', 'fl-builder' ),
-						'default'    => '10',
 						'responsive' => true,
 						'slider'     => true,
 						'units'      => array( 'px' ),
 						'preview'    => array(
 							'type'     => 'css',
-							'selector' => '{node}.fl-module-search .fl-search-form-wrap',
+							'selector' => '{node}.fl-module-search .fl-search-form-label',
 							'property' => 'padding',
+						),
+					),
+					'label_color'      => array(
+						'type'        => 'color',
+						'label'       => __( 'Color', 'fl-builder' ),
+						'show_reset'  => true,
+						'show_alpha'  => true,
+						'connections' => array( 'color' ),
+						'preview'     => array(
+							'type'     => 'css',
+							'selector' => '{node}.fl-module-search .fl-search-form-label',
+							'property' => 'color',
+						),
+					),
+					'label_typography' => array(
+						'type'       => 'typography',
+						'label'      => __( 'Typography', 'fl-builder' ),
+						'responsive' => true,
+						'preview'    => array(
+							'type'     => 'css',
+							'selector' => '{node}.fl-module-search .fl-search-form-label',
 						),
 					),
 				),
 			),
-			'input_style'       => array(
-				'title'  => __( 'Input Text', 'fl-builder' ),
+			'input_style'      => array(
+				'title'  => __( 'Input', 'fl-builder' ),
 				'fields' => array(
+					'input_padding'        => array(
+						'type'       => 'dimension',
+						'label'      => __( 'Padding', 'fl-builder' ),
+						'default'    => '12',
+						'responsive' => true,
+						'slider'     => true,
+						'units'      => array( 'px' ),
+						'preview'    => array(
+							'type'     => 'css',
+							'selector' => '{node}.fl-module-search .fl-search-text',
+							'property' => 'padding',
+						),
+					),
+					'input_typography'     => array(
+						'type'       => 'typography',
+						'label'      => __( 'Typography', 'fl-builder' ),
+						'responsive' => true,
+						'preview'    => array(
+							'type'      => 'css',
+							'selector'  => '{node}.fl-module-search .fl-search-text',
+							'important' => true,
+						),
+					),
 					'input_color'          => array(
 						'type'        => 'color',
 						'label'       => __( 'Color', 'fl-builder' ),
@@ -655,16 +832,6 @@ FLBuilder::register_module('FLSearchModule', array(
 							'property' => 'background-color',
 						),
 					),
-					'input_typography'     => array(
-						'type'       => 'typography',
-						'label'      => __( 'Typography', 'fl-builder' ),
-						'responsive' => true,
-						'preview'    => array(
-							'type'      => 'css',
-							'selector'  => '{node}.fl-module-search .fl-search-text',
-							'important' => true,
-						),
-					),
 					'input_border'         => array(
 						'type'    => 'border',
 						'label'   => __( 'Border', 'fl-builder' ),
@@ -681,22 +848,9 @@ FLBuilder::register_module('FLSearchModule', array(
 							'type' => 'none',
 						),
 					),
-					'input_padding'        => array(
-						'type'       => 'dimension',
-						'label'      => __( 'Padding', 'fl-builder' ),
-						'default'    => '12',
-						'responsive' => true,
-						'slider'     => true,
-						'units'      => array( 'px' ),
-						'preview'    => array(
-							'type'     => 'css',
-							'selector' => '{node}.fl-module-search .fl-search-text',
-							'property' => 'padding',
-						),
-					),
 				),
 			),
-			'button_style'      => array(
+			'button_style'     => array(
 				'title'  => 'Button',
 				'fields' => array(
 					'btn_align'            => array(
@@ -755,7 +909,7 @@ FLBuilder::register_module('FLSearchModule', array(
 						'units'      => array( 'px' ),
 						'preview'    => array(
 							'type'     => 'css',
-							'selector' => '.fl-button:is(a, button), .fl-form-field input[type=search]',
+							'selector' => '{node}.fl-module-search .fl-button:is(a, button)',
 							'property' => 'padding',
 						),
 					),
@@ -768,7 +922,7 @@ FLBuilder::register_module('FLSearchModule', array(
 						'show_alpha'  => true,
 						'preview'     => array(
 							'type'      => 'css',
-							'selector'  => '.fl-button:is(a, button), .fl-button:is(a, button) *',
+							'selector'  => '{node}.fl-module-search .fl-button:is(a, button), {node}.fl-module-search .fl-button:is(a, button) *',
 							'property'  => 'color',
 							'important' => true,
 						),
@@ -790,14 +944,13 @@ FLBuilder::register_module('FLSearchModule', array(
 						'responsive' => true,
 						'preview'    => array(
 							'type'     => 'css',
-							'selector' => '.fl-button:is(a, button)',
-							// 'important' => true,
+							'selector' => '{node}.fl-module-search .fl-button:is(a, button)',
 						),
 					),
 					'btn_bg_color'         => array(
 						'type'        => 'color',
 						'connections' => array( 'color' ),
-						'label'       => __( 'Button Background Color', 'fl-builder' ),
+						'label'       => __( 'Background Color', 'fl-builder' ),
 						'default'     => '',
 						'show_reset'  => true,
 						'show_alpha'  => true,
@@ -808,7 +961,7 @@ FLBuilder::register_module('FLSearchModule', array(
 					'btn_bg_hover_color'   => array(
 						'type'        => 'color',
 						'connections' => array( 'color' ),
-						'label'       => __( 'Button Background Hover Color', 'fl-builder' ),
+						'label'       => __( 'Background Hover Color', 'fl-builder' ),
 						'default'     => '',
 						'show_reset'  => true,
 						'show_alpha'  => true,
@@ -818,7 +971,7 @@ FLBuilder::register_module('FLSearchModule', array(
 					),
 					'btn_style'            => array(
 						'type'    => 'select',
-						'label'   => __( 'Button Background Style', 'fl-builder' ),
+						'label'   => __( 'Background Style', 'fl-builder' ),
 						'default' => 'flat',
 						'options' => array(
 							'flat'     => __( 'Flat', 'fl-builder' ),
@@ -843,11 +996,6 @@ FLBuilder::register_module('FLSearchModule', array(
 							'type' => 'none',
 						),
 					),
-				),
-			),
-			'button_icon_color' => array(
-				'title'  => 'Button Icon Colors',
-				'fields' => array(
 					'btn_icon_color'       => array(
 						'type'        => 'color',
 						'connections' => array( 'color' ),
@@ -858,7 +1006,7 @@ FLBuilder::register_module('FLSearchModule', array(
 						'preview'     => array(
 							'type'      => 'css',
 							'property'  => 'color',
-							'selector'  => 'i.fl-button-icon.fas:before',
+							'selector'  => '{node}.fl-module-search i.fl-button-icon.fas:before',
 							'important' => true,
 						),
 					),
@@ -874,49 +1022,6 @@ FLBuilder::register_module('FLSearchModule', array(
 					),
 				),
 			),
-			'fullscreen_style'  => array(
-				'title'  => 'Fullscreen',
-				'fields' => array(
-					'fs_input_width'  => array(
-						'type'     => 'unit',
-						'label'    => __( 'Input Width', 'fl-builder' ),
-						'default'  => '600',
-						'sanitize' => 'absint',
-						'units'    => array( 'px', '%' ),
-						'slider'   => array(
-							'min'  => 0,
-							'max'  => 1100,
-							'step' => 10,
-						),
-						'help'     => __( 'The max width of the input field inside the lightbox.', 'fl-builder' ),
-						'preview'  => array(
-							'type' => 'none',
-						),
-					),
-					'fs_overlay_bg'   => array(
-						'type'        => 'color',
-						'label'       => __( 'Overlay Background Color', 'fl-builder' ),
-						'show_reset'  => true,
-						'show_alpha'  => true,
-						'connections' => array( 'color' ),
-						'preview'     => array(
-							'type' => 'none',
-						),
-					),
-					'fs_close_button' => array(
-						'type'    => 'select',
-						'label'   => __( 'Close Button', 'fl-builder' ),
-						'default' => 'show',
-						'options' => array(
-							'hide' => __( 'Hide', 'fl-builder' ),
-							'show' => __( 'Show', 'fl-builder' ),
-						),
-						'preview' => array(
-							'type' => 'none',
-						),
-					),
-				),
-			),
 		),
 	),
 	'content' => array(
@@ -925,7 +1030,7 @@ FLBuilder::register_module('FLSearchModule', array(
 			'general'     => array(
 				'title'  => '',
 				'fields' => array(
-					'result' => array(
+					'result'    => array(
 						'type'    => 'select',
 						'label'   => __( 'Results', 'fl-builder' ),
 						'default' => 'redirect',
@@ -936,11 +1041,18 @@ FLBuilder::register_module('FLSearchModule', array(
 						'toggle'  => array(
 							'ajax' => array(
 								'sections' => array( 'ajax_result' ),
+								'fields'   => array( 'post_type' ),
 							),
 						),
 						'preview' => array(
 							'type' => 'none',
 						),
+					),
+					'post_type' => array(
+						'type'         => 'post-type',
+						'label'        => __( 'Post Type', 'fl-builder' ),
+						'multi-select' => true,
+						'help'         => __( 'Use to narrow down search results by post type.', 'fl-builder' ),
 					),
 				),
 			),
@@ -1069,8 +1181,3 @@ FLBuilder::register_module('FLSearchModule', array(
 		),
 	),
 ));
-
-FLBuilder::register_module_deprecations( 'search', [
-	// Register module version (v1) to deprecate the old rendered photo module HTML markup.
-	'v1' => [],
-] );

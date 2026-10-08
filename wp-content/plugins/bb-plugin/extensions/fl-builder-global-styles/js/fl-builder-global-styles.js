@@ -268,9 +268,22 @@
 		 */
 		_onSaveComplete: function( response )
 		{
-			FLBuilder.triggerHook( 'didSaveGlobalStylesComplete', FLBuilder._jsonParse( response ) );
+			var data = FLBuilder._jsonParse( response );
+
+			FLBuilder.triggerHook( 'didSaveGlobalStylesComplete', data );
+
+			if ( ! data ) {
+				return;
+			}
+
 			FLBuilderGlobalStylesPreview.destroy();
 			FLBuilderGlobalStylesPreview.renderCSS(null, true);
+
+			// Refresh color picker swatches so new/reordered/deleted global
+			// colors appear without a page refresh.
+			if ( window.FL && FL.controls && 'function' === typeof FL.controls.refreshColorSets ) {
+				FL.controls.refreshColorSets();
+			}
 		},
 
 		/**
@@ -299,6 +312,12 @@
 						// reload preview
 						FLBuilder.triggerHook( 'clearGlobalPreviewTimeout' );
 						FLBuilderGlobalStylesPreview.renderCSS( null, true );
+
+						// Refresh color picker swatches so the reset global
+						// colors appear without a page refresh.
+						if ( window.FL && FL.controls && 'function' === typeof FL.controls.refreshColorSets ) {
+							FL.controls.refreshColorSets();
+						}
 
 						setTimeout( function() {
 							// reload panel

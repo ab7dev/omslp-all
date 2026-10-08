@@ -132,7 +132,7 @@ FLBuilderCSS::typography_field_rule( array(
 <?php if ( ! empty( $settings->content_color ) ) : ?>
 .fl-builder-content .fl-node-<?php echo $id; ?> .fl-post-feed .fl-post-feed-content,
 .fl-builder-content .fl-node-<?php echo $id; ?> .fl-post-feed .fl-post-feed-content p,
-.fl-builder-content .fl-node-<?php echo $id; ?> .fl-post-feed .fl-post-feed-content .fl-post-feed-more,
+.fl-builder-content .fl-node-<?php echo $id; ?> .fl-post-feed .fl-post-feed-content a.fl-post-feed-more,
 .fl-builder-content .fl-node-<?php echo $id; ?> .fl-builder-pagination ul.page-numbers li span, 
 .fl-builder-content .fl-node-<?php echo $id; ?> .fl-builder-pagination ul.page-numbers li a {
 	color: <?php echo FLBuilderColor::hex_or_rgb( $settings->content_color ); ?>;
@@ -140,13 +140,13 @@ FLBuilderCSS::typography_field_rule( array(
 <?php endif; ?>
 
 <?php if ( ! empty( $settings->link_color ) ) : ?>
-.fl-builder-content .fl-node-<?php echo $id; ?> .fl-post-feed .fl-post-feed-content a {
+.fl-builder-content .fl-node-<?php echo $id; ?> .fl-post-feed .fl-post-feed-content a.fl-post-feed-more {
 	color: <?php echo FLBuilderColor::hex_or_rgb( $settings->link_color ); ?>;
 }
 <?php endif; ?>
 
 <?php if ( ! empty( $settings->link_hover_color ) ) : ?>
-.fl-node-<?php echo $id; ?> .fl-post-feed-content a:hover {
+.fl-node-<?php echo $id; ?> .fl-post-feed .fl-post-feed-content a.fl-post-feed-more:hover {
 	color: <?php echo FLBuilderColor::hex_or_rgb( $settings->link_hover_color ); ?>;
 }
 <?php endif; ?>

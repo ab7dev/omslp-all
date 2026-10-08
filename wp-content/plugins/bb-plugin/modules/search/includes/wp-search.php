@@ -1,12 +1,19 @@
-<?php
-/* Prevent direct access */
-defined( 'ABSPATH' ) or die( "You can't access this file directly." );
-
-?>
-<form role="search" aria-label="Search form" method="get" action="<?php echo esc_url( home_url( '/' ) ); ?>">
+<?php defined( 'ABSPATH' ) or die( "You can't access this file directly." ); ?>
+<form method="get" action="<?php echo esc_url( home_url( '/' ) ); ?>">
+	<?php if ( 'show' === $settings->label ) : ?>
+		<label for="search-input-<?php echo $id; ?>" class="fl-search-form-label"><?php echo __( 'Search', 'fl-builder' ); ?></label>
+	<?php endif; ?>
 	<div class="fl-form-field">
-		<input type="search" aria-label="Search input" class="fl-search-text" placeholder="<?php echo esc_attr( $settings->placeholder ); ?>" value="<?php echo get_search_query(); ?>" name="s" />
-
+		<input <?php echo $module->get_input_attributes(); ?> />
+		<span id="search-error-<?php echo $id; ?>" class="sr-only">
+			<?php
+			if ( 'ajax' === $settings->result ) :
+				echo __( 'Search field required with a minimum length of 3 characters', 'fl-builder' );
+			else :
+				echo __( 'Search field required', 'fl-builder' );
+			endif;
+			?>
+		</span>
 		<?php if ( 'ajax' == $settings->result ) : ?>
 		<div class="fl-search-loader-wrap">
 			<div class="fl-search-loader">
@@ -16,8 +23,16 @@ defined( 'ABSPATH' ) or die( "You can't access this file directly." );
 			</div>
 		</div>
 		<?php endif; ?>
+		<?php if ( 'ajax' == $settings->result && ( 'show' === $settings->label || 2 < $module->version ) ) : ?>
+			<div class="fl-search-results-content" aria-live="polite"></div>
+		<?php endif; ?>
 	</div>
-	<?php if ( 'ajax' == $settings->result ) : ?>
-	<div class="fl-search-results-content"></div>
+	<?php
+	if ( 2 < $module->version && 'fullscreen' !== $settings->btn_action ) :
+		$module->render_button( 'reveal' === $settings->btn_action );
+	endif;
+	?>
+	<?php if ( 'ajax' == $settings->result && ( 'hide' === $settings->label && 3 > $module->version ) ) : ?>
+	<div class="fl-search-results-content" aria-live="polite"></div>
 	<?php endif; ?>
 </form>

@@ -321,7 +321,7 @@ if (! empty( $_POST['delete-error-log'] ) ){
 		// Centralized logging: remote server
 		if ( ! empty( $nfw_options['clogs_pubkey'] ) ) {
 			$err_msg = $ok_msg = '';
-			if (! preg_match( '/^[a-f0-9]{40}:([a-f0-9:.]{3,39}|\*)$/', $nfw_options['clogs_pubkey'], $match ) ) {
+			if (! preg_match( '/^[a-f0-9]{40,64}:([a-f0-9:.]{3,39}|\*)$/', $nfw_options['clogs_pubkey'], $match ) ) {
 				$err_msg = sprintf( __('the public key is invalid. Please <a href="%s">check your configuration</a>.', 'nfwplus'), '?page=nfsublog#clogs');
 
 			} else {

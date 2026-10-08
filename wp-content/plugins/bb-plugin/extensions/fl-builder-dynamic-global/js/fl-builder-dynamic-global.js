@@ -340,7 +340,16 @@
 		handleGlobalNodeDisplay: function( nodeData ) {
 			const { nodeId, nodeType, isNewModule, showTemplate, global, dynamic, dynamicFields } = nodeData;
 
-			if ( nodeType === 'module' && nodeData.type !== 'box' && ! dynamicFields && FLBuilderConfig.postType !== 'fl-builder-template' ) {
+			// A module type can own its own instance editor, in which case having no
+			// BB dynamic fields is expected rather than a reason to show the empty
+			// notice — its editable surface just isn't expressed as BB fields. Skip
+			// the notice for those and let the server decide, so the module's
+			// fl_builder_dynamic_node_tabs_config filter can mount its editor.
+			// Modules that don't opt in are unaffected: the flag defaults to false,
+			// so the condition below evaluates exactly as it did before.
+			const moduleConfig = ( FLBuilderSettingsConfig.modules || {} )[ nodeData.type ] || {};
+
+			if ( nodeType === 'module' && nodeData.type !== 'box' && ! dynamicFields && ! moduleConfig.ownsInstanceEditor && FLBuilderConfig.postType !== 'fl-builder-template' ) {
 				const notice = FLBuilderStrings.dynamicNodeEmpty.replace( 'TEMPLATE_URL', nodeData.templateUrl );
 
 				FLBuilder._showModuleSettings( {
@@ -364,6 +373,10 @@
 				const config = FLBuilder._jsonParse( response );
 				const showTemplate = typeof( nodeData.showTemplate ) !== 'undefined' ? nodeData.showTemplate : true;
 
+				if ( ! config ) {
+					return;
+				}
+
 				// Merge video attachment data into the settings config.
 				if ( config.attachments ) {
 					FLBuilderSettingsConfig.attachments = Object.assign(
@@ -373,6 +386,8 @@
 				}
 
 				if ( config.dynamicEditing && ! config.isEmpty ) {
+
+					FLBuilderDynamicGlobal._loadScripts( config );
 
 					if ( nodeData.layout ) {
 						FLBuilder._renderLayout( nodeData.layout );
@@ -432,6 +447,10 @@
 				settings            : config.settings,
 				notice              : config.notice,
 				dynamicNodeSettings : JSON.stringify( config.dynamic_node_settings ),
+				// Forwarded so a module-owned deferred tab can read the editor
+				// payload its PHP filter attached (see the
+				// `fl_builder_dynamic_node_tabs_config` filter).
+				componentEditor     : config.componentEditor,
 				type                : 'dynamic',
 				className           : `fl-builder-dynamic-${ nodeData.nodeType }-settings`,
 				attrs               : 'data-node="' + nodeData.nodeId + '"',
@@ -447,6 +466,74 @@
 
 				FLBuilderDynamicGlobal._bindDynamicNodeEditLink( nodeData.nodeId );
 			} );
+		},
+
+		/**
+		 * Loads script assets of modules used by the component. 
+		 * 
+		 * @since 2.11
+		 * @access private
+		 * @method _loadScripts
+		 */
+		_loadScripts: function( config ) {
+			// `dynamic_node_settings` is only set on the fully-resolved config; every
+			// early return in get_dynamic_node_tabs() omits it — including the
+			// empty-sections branch a module-owned editor is mounted from.
+			if ( ! config.dynamic_node_settings ) {
+				return;
+			}
+
+			const modules = config.dynamic_node_settings.modules || {};
+			const head    = $( 'head', window.parent.document );
+
+			if ( 0 === Object.keys( modules ).length ) {
+				return;
+			}
+
+			for ( const [ nodeId, module ] of Object.entries( modules ) ) {
+				let moduleConfig = FLBuilderSettingsConfig.modules[ module ];
+				let scriptElement = '';
+				let jsUrl = '';
+				let cssUrl = '';
+				let linkElement = '';
+
+				if ( ! moduleConfig ) {
+					continue;
+				}
+
+				if ( -1 === $.inArray( module, FLBuilder._loadedModuleAssets ) ) {
+					let assetAdded = false;
+
+					if ( '' !== moduleConfig.assets.js ) {
+						jsUrl = moduleConfig.assets.jsurl;
+						scriptElement = document.createElement( 'script' );
+						scriptElement.src = jsUrl;
+
+						scriptElement.onload = function() {
+							if ( FLBuilder._moduleHelpers[ module ] && typeof FLBuilder._moduleHelpers[ module ].initForComponent === 'function' ) {
+								FLBuilder._moduleHelpers[ module ].initForComponent();
+							}
+						};
+						document.head.appendChild( scriptElement );
+						assetAdded = true;
+					}
+
+					if ( '' !== moduleConfig.assets.css ) {
+						cssUrl = moduleConfig.assets.cssurl;
+						linkElement = document.createElement( 'link' );
+						linkElement.rel = 'stylesheet';
+						linkElement.type = 'text/css';
+						linkElement.href = cssUrl;
+						document.head.appendChild( linkElement );
+						assetAdded = true;
+					}
+
+					if ( assetAdded ) {
+						FLBuilder._loadedModuleAssets.push( module );
+					}
+				}
+			}
+
 		},
 	}
 

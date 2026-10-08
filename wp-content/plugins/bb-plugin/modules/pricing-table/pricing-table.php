@@ -196,6 +196,22 @@ class FLPricingTableModule extends FLBuilderModule {
 	}
 
 	/**
+	 * Ensures backward compatibility: existing pricing table instances that
+	 * were saved before the tooltip_style field existed default to legacy,
+	 * while new instances use the field's default.
+	 *
+	 * @param object $settings Raw settings loaded from the database.
+	 * @param object $defaults The default settings for this module.
+	 * @return object
+	 */
+	public function filter_raw_settings_defaults( $settings, $defaults ) {
+		if ( ! isset( $settings->tooltip_style ) ) {
+			$settings->tooltip_style = 'fl-builder-tooltip-legacy';
+		}
+		return $settings;
+	}
+
+	/**
 	 * Returns an array of settings used to render a button module.
 	 *
 	 * @since 2.2
@@ -216,6 +232,9 @@ class FLPricingTableModule extends FLBuilderModule {
 				$settings[ $key ] = $value;
 			}
 		}
+
+		// Button text color handles icon coloring for any icon type; drop any legacy duotone overrides.
+		unset( $settings['duo_color1'], $settings['duo_color2'] );
 
 		return $settings;
 	}
@@ -240,7 +259,27 @@ class FLPricingTableModule extends FLBuilderModule {
 	public function render_button( $column ) {
 		$pricing_column = $this->settings->pricing_columns[ $column ];
 
+		$monthly_link   = $pricing_column->button_url;
+		$monthly_target = $pricing_column->button_url_target;
+
+		$is_yearly_used = (
+			'yes' === $this->settings->dual_billing &&
+			'yes' === $pricing_column->button_url_yearly_used &&
+			! empty( $pricing_column->button_url_yearly )
+		);
+
+		$yearly_link   = $is_yearly_used ? $pricing_column->button_url_yearly : $monthly_link;
+		$yearly_target = $is_yearly_used ? $pricing_column->button_url_yearly_target : $monthly_target;
+
+		echo '<div class="fl-pricing-table-button-wrap"
+			data-monthly-url="' . esc_url( $monthly_link ) . '"
+			data-yearly-url="' . esc_url( $yearly_link ) . '"
+			data-monthly-target="' . esc_attr( $monthly_target ) . '"
+			data-yearly-target="' . esc_attr( $yearly_target ) . '">';
+
 		FLBuilder::render_module_html( 'button', $this->get_button_settings( $pricing_column ), $this->get_button_version() );
+
+		echo '</div>';
 	}
 
 	/**
@@ -351,11 +390,26 @@ class FLPricingTableModule extends FLBuilderModule {
 
 		$html = '<div class="fl-pricing-table-price">';
 		if ( 'no' === $settings->dual_billing ) {
-			$html .= ' ' . $pricing_column->price . ' ';
+			$html .= '<span>' . $pricing_column->price . '</span>';
 			$html .= '<span class="fl-pricing-table-duration">' . $pricing_column->duration . '</span>';
 		} elseif ( 'yes' === $settings->dual_billing ) {
-			$html .= '<span class="first_option-price">' . $pricing_column->price . '</span>';
-			$html .= '<span class="second_option-price">' . $pricing_column->price_option_2 . '</span>';
+			$first_term  = ! empty( $settings->price_term_1 ) ? $settings->price_term_1 : '';
+			$second_term = ! empty( $settings->price_term_2 ) ? $settings->price_term_2 : '';
+			// First (e.g. Monthly)
+			$html .= '<span class="first_option-price">';
+			$html .= $pricing_column->price;
+			if ( '' !== $first_term ) {
+				$html .= ' <span class="fl-price-term">' . esc_html( $first_term ) . '</span>';
+			}
+			$html .= '</span>';
+
+			// Second (e.g. Yearly)
+			$html .= '<span class="second_option-price">';
+			$html .= $pricing_column->price_option_2;
+			if ( '' !== $second_term ) {
+				$html .= ' <span class="fl-price-term">' . esc_html( $second_term ) . '</span>';
+			}
+			$html .= '</span>';
 		}
 		$html .= '</div>';
 
@@ -402,7 +456,7 @@ class FLPricingTableModule extends FLBuilderModule {
 			// Default feature icon
 			if ( ! empty( $settings->default_feature_icon ) ) {
 				FLBuilderIcons::enqueue_styles_for_icon( $settings->default_feature_icon );
-				$icon = '<div class="fl-feature-icon-wrapper"><i class="fl-feature-icon ' . esc_attr( $settings->default_feature_icon ) . '" aria-hidden="true"></i></div>';
+				$icon = '<div class="fl-feature-icon-wrapper"><i class="fl-feature-icon ' . esc_attr( FLBuilderModuleUtils::get_icon_classes( $settings, 'default_feature_' ) ) . '" aria-hidden="true"></i></div>';
 			}
 
 			// Override default feature icon?
@@ -416,13 +470,25 @@ class FLPricingTableModule extends FLBuilderModule {
 				$description = '<div class="fl-feature-text">' . $feature['description'] . '</div>';
 			}
 
-			$tooltip_icon = empty( $settings->default_feature_tooltip_icon ) ? 'fas fa-question-circle' : $settings->default_feature_tooltip_icon;
+			$tooltip_icon = empty( $settings->default_feature_tooltip_icon ) ? 'fas fa-question-circle' : FLBuilderModuleUtils::get_icon_classes( $settings, 'default_feature_tooltip_' );
 
 			$tooltip = '';
 			if ( ! empty( $feature['tooltip'] ) ) {
 				FLBuilderIcons::enqueue_styles_for_icon( $feature['tooltip'] );
-				$tooltip  = '<div class="fl-builder-tooltip"><i class="fl-builder-tooltip-icon ' . esc_attr( $tooltip_icon ) . '" aria-hidden="true"></i>';
-				$tooltip .= '<div class="fl-builder-tooltip-text" style="display: none;">';
+				$tooltip_bg      = '';
+				$active_bg_color = '';
+				if ( 'fl-builder-tooltip-dark' === $settings->tooltip_style ) {
+					$active_bg_color = ! empty( $settings->tooltip_dark_bg_color ) ? $settings->tooltip_dark_bg_color : '';
+				} elseif ( 'fl-builder-tooltip-light' === $settings->tooltip_style ) {
+					$active_bg_color = ! empty( $settings->tooltip_light_bg_color ) ? $settings->tooltip_light_bg_color : '';
+				} else {
+					$active_bg_color = ! empty( $settings->tooltip_bg_color ) ? $settings->tooltip_bg_color : '';
+				}
+				if ( ! empty( $active_bg_color ) ) {
+					$tooltip_bg = 'style="--tooltip-bg:#' . esc_attr( $active_bg_color ) . ';"';
+				}
+				$tooltip  = '<div class="fl-builder-tooltip ' . esc_attr( $settings->tooltip_style ) . '" data-tooltip-trigger="' . esc_attr( $settings->tooltip_trigger ) . '" ' . $tooltip_bg . '><i class="fl-builder-tooltip-icon ' . esc_attr( $tooltip_icon ) . '" aria-hidden="true"></i>';
+				$tooltip .= '<div class="fl-builder-tooltip-text" style="display: none;" data-title="' . esc_attr( $feature['description'] ) . '">';
 				$tooltip .= esc_html( $feature['tooltip'] );
 				$tooltip .= '</div></div>';
 			}
@@ -470,8 +536,8 @@ FLBuilder::register_module('FLPricingTableModule', array(
 						),
 						'toggle'  => array(
 							'yes' => array(
-								'fields'   => array( 'billing_option_1', 'billing_option_2' ),
-								'sections' => array( 'switch_button_style' ),
+								'fields'   => array( 'billing_option_1', 'billing_option_2', 'price_term_1', 'price_term_2' ),
+								'sections' => array( 'switch_button_style', 'billing_term_style_section' ),
 							),
 						),
 					),
@@ -487,6 +553,18 @@ FLBuilder::register_module('FLPricingTableModule', array(
 						'default'     => __( 'Yearly', 'fl-builder' ),
 						'placeholder' => __( 'Yearly', 'fl-builder' ),
 					),
+					'price_term_1'     => array(
+						'type'        => 'text',
+						'label'       => __( 'Billing Term (Option 1)', 'fl-builder' ),
+						'placeholder' => __( 'per month', 'fl-builder' ),
+						'help'        => __( 'Shown next to the first price when dual billing is enabled. Leave empty to hide.', 'fl-builder' ),
+					),
+					'price_term_2'     => array(
+						'type'        => 'text',
+						'label'       => __( 'Billing Term (Option 2)', 'fl-builder' ),
+						'placeholder' => __( 'per year', 'fl-builder' ),
+						'help'        => __( 'Shown next to the second price when dual billing is enabled. Leave empty to hide.', 'fl-builder' ),
+					),
 				),
 			),
 			'icons_section'           => array(
@@ -494,17 +572,21 @@ FLBuilder::register_module('FLPricingTableModule', array(
 				'collapsed' => true,
 				'fields'    => array(
 					'default_feature_icon'         => array(
-						'type'        => 'icon',
-						'label'       => __( 'Default Feature Icon', 'fl-builder' ),
-						'show_remove' => true,
-						'help'        => __( 'Icon can be overridden in the individual feature options.', 'fl-builder' ),
+						'type'               => 'icon',
+						'label'              => __( 'Default Feature Icon', 'fl-builder' ),
+						'show_remove'        => true,
+						'show_extra_classes' => true,
+						'connections'        => array( 'icon' ),
+						'help'               => __( 'Icon can be overridden in the individual feature options.', 'fl-builder' ),
 					),
 					'default_feature_tooltip_icon' => array(
-						'type'        => 'icon',
-						'label'       => __( 'Feature Tooltip Icon', 'fl-builder' ),
-						'default'     => 'fas fa-question-circle',
-						'show_remove' => true,
-						'help'        => __( 'If not specified, the "Question Mark" icon will be used.', 'fl-builder' ),
+						'type'               => 'icon',
+						'label'              => __( 'Feature Tooltip Icon', 'fl-builder' ),
+						'default'            => 'fas fa-question-circle',
+						'show_remove'        => true,
+						'show_extra_classes' => true,
+						'connections'        => array( 'icon' ),
+						'help'               => __( 'If not specified, the "Question Mark" icon will be used.', 'fl-builder' ),
 					),
 				),
 			),
@@ -513,7 +595,7 @@ FLBuilder::register_module('FLPricingTableModule', array(
 	'style'   => array(
 		'title'    => __( 'Style', 'fl-builder' ),
 		'sections' => array(
-			'general'              => array(
+			'general'                    => array(
 				'title'  => 'General Style',
 				'fields' => array(
 					'highlight'        => array(
@@ -574,7 +656,7 @@ FLBuilder::register_module('FLPricingTableModule', array(
 					),
 				),
 			),
-			'border_style_section' => array(
+			'border_style_section'       => array(
 				'title'     => 'Border',
 				'collapsed' => true,
 				'fields'    => array(
@@ -639,7 +721,7 @@ FLBuilder::register_module('FLPricingTableModule', array(
 					),
 				),
 			),
-			'feature_list_section' => array(
+			'feature_list_section'       => array(
 				'title'     => __( 'Feature List Style', 'fl-builder' ),
 				'collapsed' => true,
 				'fields'    => array(
@@ -717,6 +799,38 @@ FLBuilder::register_module('FLPricingTableModule', array(
 						),
 						'disabled'   => array( 'default' => array( 'text_align' ) ),
 					),
+					'tooltip_style'             => array(
+						'type'    => 'select',
+						'label'   => __( 'Tooltip Style', 'fl-builder' ),
+						'default' => 'fl-builder-tooltip-dark',
+						'options' => array(
+							'fl-builder-tooltip-dark'   => __( 'Dark', 'fl-builder' ),
+							'fl-builder-tooltip-light'  => __( 'Light', 'fl-builder' ),
+							'fl-builder-tooltip-legacy' => __( 'Legacy', 'fl-builder' ),
+						),
+						'toggle'  => array(
+							'fl-builder-tooltip-dark'   => array(
+								'fields' => array( 'tooltip_dark_text_color', 'tooltip_dark_bg_color' ),
+							),
+							'fl-builder-tooltip-light'  => array(
+								'fields' => array( 'tooltip_light_text_color', 'tooltip_light_bg_color' ),
+							),
+							'fl-builder-tooltip-legacy' => array(
+								'fields' => array( 'tooltip_text_color', 'tooltip_bg_color' ),
+							),
+						),
+						'help'    => __( 'Choose a tooltip visual style.', 'fl-builder' ),
+					),
+					'tooltip_trigger'           => array(
+						'type'    => 'select',
+						'label'   => __( 'Tooltip Trigger', 'fl-builder' ),
+						'default' => 'click',
+						'options' => array(
+							'click' => __( 'Click', 'fl-builder' ),
+							'hover' => __( 'Hover', 'fl-builder' ),
+						),
+						'help'    => __( 'Choose whether tooltips appear on click or hover.', 'fl-builder' ),
+					),
 					'tooltip_icon_size'         => array(
 						'type'       => 'unit',
 						'label'      => __( 'Tooltip Icon Size', 'fl-builder' ),
@@ -763,9 +877,43 @@ FLBuilder::register_module('FLPricingTableModule', array(
 						'show_reset' => true,
 						'show_alpha' => true,
 					),
+					'tooltip_dark_text_color'   => array(
+						'type'       => 'color',
+						'label'      => __( 'Tooltip Text Color', 'fl-builder' ),
+						'default'    => 'ffffff',
+						'show_reset' => true,
+						'show_alpha' => true,
+						'preview'    => array(
+							'type' => 'refresh',
+						),
+					),
+					'tooltip_dark_bg_color'     => array(
+						'type'       => 'color',
+						'label'      => __( 'Tooltip Background Color', 'fl-builder' ),
+						'default'    => '1f2937',
+						'show_reset' => true,
+						'show_alpha' => true,
+					),
+					'tooltip_light_text_color'  => array(
+						'type'       => 'color',
+						'label'      => __( 'Tooltip Text Color', 'fl-builder' ),
+						'default'    => '111111',
+						'show_reset' => true,
+						'show_alpha' => true,
+						'preview'    => array(
+							'type' => 'refresh',
+						),
+					),
+					'tooltip_light_bg_color'    => array(
+						'type'       => 'color',
+						'label'      => __( 'Tooltip Background Color', 'fl-builder' ),
+						'default'    => 'ffffff',
+						'show_reset' => true,
+						'show_alpha' => true,
+					),
 				),
 			),
-			'switch_button_style'  => array(
+			'switch_button_style'        => array(
 				'title'     => 'Toggle Price Button',
 				'collapsed' => true,
 				'fields'    => array(
@@ -811,6 +959,34 @@ FLBuilder::register_module('FLPricingTableModule', array(
 						'preview'    => array(
 							'type'     => 'css',
 							'selector' => '{node} span.first_option, {node} span.second_option',
+						),
+					),
+				),
+			),
+			'billing_term_style_section' => array(
+				'title'     => __( 'Billing Term Style', 'fl-builder' ),
+				'collapsed' => true,
+				'fields'    => array(
+					'price_term_color'      => array(
+						'type'       => 'color',
+						'label'      => __( 'Price Term Color', 'fl-builder' ),
+						'default'    => '',
+						'show_reset' => true,
+						'show_alpha' => true,
+						'preview'    => array(
+							'type'      => 'css',
+							'selector'  => '{node} .fl-pricing-table-duration, {node} .fl-price-term',
+							'property'  => 'color',
+							'important' => true,
+						),
+					),
+					'price_term_typography' => array(
+						'type'       => 'typography',
+						'label'      => __( 'Price Term Typography', 'fl-builder' ),
+						'responsive' => true,
+						'preview'    => array(
+							'type'     => 'css',
+							'selector' => '{node} .fl-pricing-table-duration, {node} .fl-price-term',
 						),
 					),
 				),
@@ -934,17 +1110,40 @@ FLBuilder::register_settings_form('pricing_column_form', array(
 				'default'    => array(
 					'title'  => '',
 					'fields' => array(
-						'button_text' => array(
+						'button_text'            => array(
 							'type'    => 'text',
 							'label'   => __( 'Button Text', 'fl-builder' ),
 							'default' => __( 'Get Started', 'fl-builder' ),
 						),
-						'button_url'  => array(
+						'button_url'             => array(
 							'type'          => 'link',
 							'label'         => __( 'Button URL', 'fl-builder' ),
 							'show_target'   => true,
 							'show_nofollow' => true,
 							'connections'   => array( 'url' ),
+						),
+						'button_url_yearly_used' => array(
+							'type'    => 'button-group',
+							'label'   => __( 'Separate Billing Option URLs', 'fl-builder' ),
+							'default' => 'no',
+							'options' => array(
+								'yes' => __( 'Yes', 'fl-builder' ),
+								'no'  => __( 'No', 'fl-builder' ),
+							),
+							'help'    => __( 'If set to "Yes", each billing option will use a separate button URL.', 'fl-builder' ),
+							'toggle'  => array(
+								'yes' => array(
+									'fields' => array( 'button_url_yearly' ),
+								),
+							),
+						),
+						'button_url_yearly'      => array(
+							'type'          => 'link',
+							'label'         => __( 'Button URL (Option 2)', 'fl-builder' ),
+							'show_target'   => true,
+							'show_nofollow' => true,
+							'connections'   => array( 'url' ),
+							'help'          => __( 'Used for the second billing option.', 'fl-builder' ),
 						),
 					),
 				),
@@ -956,36 +1155,9 @@ FLBuilder::register_settings_form('pricing_column_form', array(
 							'type'        => 'icon',
 							'label'       => __( 'Button Icon', 'fl-builder' ),
 							'show_remove' => true,
+							'connections' => array( 'icon' ),
 							'show'        => array(
 								'fields' => array( 'btn_icon_position', 'btn_icon_animation' ),
-							),
-						),
-						'btn_duo_color1'     => array(
-							'label'       => __( 'DuoTone Primary Color', 'fl-builder' ),
-							'type'        => 'color',
-							'connections' => array( 'color' ),
-							'default'     => '',
-							'show_reset'  => true,
-							'show_alpha'  => true,
-							'preview'     => array(
-								'type'      => 'css',
-								'selector'  => '.fl-button-icon.fad:before',
-								'property'  => 'color',
-								'important' => true,
-							),
-						),
-						'btn_duo_color2'     => array(
-							'label'       => __( 'DuoTone Secondary Color', 'fl-builder' ),
-							'type'        => 'color',
-							'connections' => array( 'color' ),
-							'default'     => '',
-							'show_reset'  => true,
-							'show_alpha'  => true,
-							'preview'     => array(
-								'type'      => 'css',
-								'selector'  => '.fl-button-icon.fad:after',
-								'property'  => 'color',
-								'important' => true,
 							),
 						),
 						'btn_icon_position'  => array(

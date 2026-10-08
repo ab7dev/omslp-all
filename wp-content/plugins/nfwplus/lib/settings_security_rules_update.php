@@ -9,13 +9,6 @@
 
 if (! defined( 'NFW_ENGINE_VERSION' ) ) { die( 'Forbidden' ); }
 
-// If your server can't remotely connect to a SSL port, add this
-// to your wp-config.php script: `define('NFW_DONT_USE_SSL', 1);`
-if ( defined( 'NFW_DONT_USE_SSL' ) ) {
-	$proto = "http";
-} else {
-	$proto = "https";
-}
 $update_log = NFW_LOG_DIR . '/nfwlog/updates.php';
 
 // Check which rules should be returned
@@ -35,11 +28,11 @@ if ( empty( $nfw_options['sched_updates'] ) || empty( $nfw_options['enable_updat
 
 if ( defined( 'NFUPDATESDO' ) && NFUPDATESDO == 2 ) {
 	// Installation:
-	$update_url = array(
-		$proto . '://plugins.svn.wordpress.org/ninjafirewall/updates/',
+	$update_url = [
+		'https://plugins.svn.wordpress.org/ninjafirewall/updates/',
 		'version3.txt',
 		'rules4.txt'
-	);
+	];
 } else {
 	// Scheduled updates or plugin update
 	$caching_id = sha1( home_url() );
@@ -47,11 +40,11 @@ if ( defined( 'NFUPDATESDO' ) && NFUPDATESDO == 2 ) {
 	if ( empty( $nfw_options['lic_exp'] ) ) { $nfw_options['lic_exp'] = ''; }
 	$lic_exp = urlencode( $nfw_options['lic_exp'] );
 	$lic = urlencode( $nfw_options['lic'] );
-	$update_url = array(
+	$update_url = [
 		'https://api.nintechnet.com/ninjafirewall/rules-update',
 		"?version=4&cid={$caching_id}&edn=wpplus&rt={$rules_type}&su={$sched_updates}&lic_exp={$lic_exp}&lic={$lic}",
 		"?rules=4&cid={$caching_id}&edn=wpplus&rt={$rules_type}&su={$sched_updates}&lic_exp={$lic_exp}&lic={$lic}"
-	);
+	];
 }
 
 // NFUPDATESDO: scheduled update (1), installation (2) or plugin update (3 - deprecated since v3.8)
@@ -310,30 +303,43 @@ function nf_sub_updates_clearlog($update_log) {
 
 // =====================================================================
 
-function nf_sub_do_updates($update_url, $update_log, $NFUPDATESDO = 1) {
+function nf_sub_do_updates( $update_url, $update_log, $NFUPDATESDO = 1 ) {
 
-	// Are we installing (2) or updating (3 - deprecated since v3.8) NinjaFirewall ?
+	/**
+	 * Installation (2) or update (3 - deprecated since v3.8).
+	 */
 	if ( $NFUPDATESDO > 1 ) {
-		 return nf_sub_updates_download($update_url, $update_log, 0);
+		 return nf_sub_updates_download( $update_url, $update_log, 0 );
 	}
 
 	$nfw_options = nfw_get_option('nfw_options');
 
-	// Don't do anything if NinjaFirewall is disabled :
-	if ( empty( $nfw_options['enabled'] ) ) { return 0; }
+	/**
+	 * Don't do anything if NinjaFirewall is disabled.
+	 */
+	if ( empty( $nfw_options['enabled'] ) ) {
+		return 0;
+	}
 
-	if (! $new_rules_version = nf_sub_updates_getversion($update_url, $nfw_options['rules_version'], $update_log) ) {
-		// Error or nothing to update :
+	if (! $new_rules_version = nf_sub_updates_getversion(
+		$update_url, $nfw_options['rules_version'], $update_log ) ) {
+		/**
+		 * Error or nothing to update.
+		 */
 		return;
 	}
 
-	// There is a new version, let's fetch it:
+	/**
+	 * A new version is available: download it and verify the digital signature.
+	 */
 	if (! $data = nf_sub_updates_download($update_url, $update_log, $new_rules_version) ) {
-		// Error :
+		// Error
 		return;
 	}
 
-	// Make sure we received the right format:
+	/**
+	 * Verify that we have a valid array of rules.
+	 */
 	if (! preg_match('/^a:\d+:{i:\d/', $data ) ) {
 		nf_sub_updates_log(
 			$update_log,
@@ -342,92 +348,95 @@ function nf_sub_do_updates($update_url, $update_log, $NFUPDATESDO = 1) {
 		return 0;
 	}
 
-	// Unserialize the new rules :
-	if (! $new_rules = @unserialize($data) ) {
+	/**
+	 * Unserialize the new rules.
+	 */
+	$new_rules = @ unserialize( $data, ['allowed_classes' => false] );
+	if ( $new_rules === false || ! is_array( $new_rules ) ||	empty( $new_rules[ 1 ]['cha'] ) ) {
+
 		nf_sub_updates_log(
 			$update_log,
-			__('Error: Unable to unserialize the new rules.', 'nfwplus')
-		);
-		return 0;
-	}
-	// One more check...:
-	if (! is_array($new_rules) || empty($new_rules[1]['cha'][1]['whe']) ) {
-		nf_sub_updates_log(
-			$update_log,
-			__('Error: Unserialized rules seem corrupted.', 'nfwplus')
+			__('Error: Rules seem corrupt.', 'nfwplus')
 		);
 		return 0;
 	}
 
-	// dropins code:
+	/**
+	 * Dropin rules: those rules are executed while WordPress is loading
+	 * as opposed to the regular ones, which are loaded before.
+	 */
 	if ( isset( $new_rules['dropins'] ) ) {
 		if ( $new_rules['dropins'] == 'delete' ) {
-			if ( file_exists( NFW_LOG_DIR .'/nfwlog/dropins.php' ) ) {
-				@unlink( NFW_LOG_DIR .'/nfwlog/dropins.php' );
+			if ( file_exists( NFW_LOG_DIR .'/nfwlog/dropins.php') ) {
+				// Delete the file if there's no dropin rules
+				@ unlink( NFW_LOG_DIR .'/nfwlog/dropins.php' );
 			}
 		} else {
 			$dropins = base64_decode( $new_rules['dropins'], true );
 			if ( $dropins !== false ) {
-				@file_put_contents( NFW_LOG_DIR .'/nfwlog/dropins.php', $dropins, LOCK_EX );
+				@ file_put_contents( NFW_LOG_DIR .'/nfwlog/dropins.php', $dropins, LOCK_EX );
 			}
 		}
+		// Remove them from the main set of rules.
 		unset( $new_rules['dropins'] );
 	}
 
-	// The WP+ Edition does not need rule #531 :
-	if ( isset($new_rules[531])) {
-		unset($new_rules[531]);
+	// The WP+ Edition does not need rule #531
+	if ( isset( $new_rules[ 531 ] ) ) {
+		unset( $new_rules[ 531 ] );
 	}
 
 	$nfw_rules = nfw_get_option('nfw_rules');
 
 	foreach ( $new_rules as $new_key => $new_value ) {
 		foreach ( $new_value as $key => $value ) {
-			// If that rule exists already, we keep its 'ena' flag value
-			// as it may have been changed by the user with the rules editor:
-			// v3.x:
-			if ( ( isset( $nfw_rules[$new_key]['ena'] ) ) && ( $key == 'ena' ) ) {
-				$new_rules[$new_key]['ena'] = $nfw_rules[$new_key]['ena'];
-			}
-			// v1.x:
-			if ( ( isset( $nfw_rules[$new_key]['on'] ) ) && ( $key == 'ena' ) ) {
-				$new_rules[$new_key]['ena'] = $nfw_rules[$new_key]['on'];
+			/**
+			 * If that rule exists already, we keep its 'enable' flag value
+			 * as it may have been changed by the user with the rules editor.
+			 */
+			if ( ( isset( $nfw_rules[ $new_key ]['ena'] ) ) && ( $key == 'ena') ) {
+				$new_rules[ $new_key ]['ena'] = $nfw_rules[ $new_key ]['ena'];
 			}
 		}
 	}
-	// v1.x:
-	if ( isset( $nfw_rules[NFW_DOC_ROOT]['what'] ) ) {
-		$new_rules[NFW_DOC_ROOT]['cha'][1]['wha']= str_replace( '/', '/[./]*', $nfw_rules[NFW_DOC_ROOT]['what'] );
-		$new_rules[NFW_DOC_ROOT]['ena']	= $nfw_rules[NFW_DOC_ROOT]['on'];
-	// v3.x:
-	} else {
-		$new_rules[NFW_DOC_ROOT]['cha'][1]['wha']= $nfw_rules[NFW_DOC_ROOT]['cha'][1]['wha'];
-		$new_rules[NFW_DOC_ROOT]['ena']	= $nfw_rules[NFW_DOC_ROOT]['ena'];
-	}
+	$new_rules[ NFW_DOC_ROOT ]['cha'][ 1 ]['wha'] = $nfw_rules[ NFW_DOC_ROOT ]['cha'][ 1 ]['wha'];
+	$new_rules[ NFW_DOC_ROOT ]['ena'] = $nfw_rules[ NFW_DOC_ROOT ]['ena'];
 
-	// NFW_OBJECTS (Block serialized PHP objects): we must keep the
-	// value defined by the user in the Firewall Policies page:
-	$new_rules[NFW_OBJECTS]['cha'][1]['whe'] = $nfw_rules[NFW_OBJECTS]['cha'][1]['whe'];
+	/**
+	 * NFW_OBJECTS (Block serialized PHP objects): we must keep the
+	 * value defined by the user in the Firewall Policies page.
+	 */
+	$new_rules[ NFW_OBJECTS ]['cha'][ 1 ]['whe'] = $nfw_rules[ NFW_OBJECTS ]['cha'][ 1 ]['whe'];
 
-	// Update rules in the DB :
-	nfw_update_option('nfw_rules', $new_rules);
+	/**
+	 * Update the rules in the DB.
+	 */
+	nfw_update_option('nfw_rules', $new_rules );
 
-	// Update rules in shared memory if needed :
+	/**
+	 * Update shared memory segment.
+	 */
 	nfw_shm_check();
 
-	// Update rules version in the options table :
+	/**
+	 * Update their version
+	 */
 	$nfw_options['rules_version'] = $new_rules_version;
 	nfw_update_option('nfw_options', $nfw_options);
-
+	/**
+	 * Write to the log.
+	 */
 	nf_sub_updates_log(
 		$update_log,
 		sprintf( __('Security rules updated to version %s.', 'nfwplus'),
-		preg_replace('/(\d{4})(\d\d)(\d\d)/', '$1-$2-$3', $new_rules_version) )
+		preg_replace('/(\d{4})(\d\d)(\d\d)/', '$1-$2-$3', $new_rules_version ) )
 	);
 
-	// Email the admin ?
-	if (! empty($nfw_options['notify_updates']) ) {
-		nf_sub_updates_notification($new_rules_version);
+	/**
+	 * Inform the admin.
+	 */
+	if (! empty( $nfw_options['notify_updates'] ) ) {
+		nf_sub_updates_notification( $new_rules_version );
 	}
 	return 1;
 }
@@ -528,24 +537,10 @@ function nf_sub_updates_download($update_url, $update_log, $new_rules_version) {
 			}
 
 			/**
-			 * Verify rules digital signature.
+			 * Verify the rules digital signature.
 			 */
-			if (! function_exists('openssl_verify') || ! defined('OPENSSL_ALGO_SHA256') ) {
-				nf_sub_updates_log(
-					$update_log,
-					__('Error: OpenSSL is required for rules verification.', 'nfwplus')
-				);
-				return 0;
-			}
-			$public_key = rtrim( file_get_contents( __DIR__ .'/sign.pub' ) );
-			$pubkeyid = openssl_pkey_get_public( $public_key );
-			$verify = openssl_verify( $data[2], base64_decode( $data[1] ), $pubkeyid, OPENSSL_ALGO_SHA256);
+			$verify = NinjaFirewall_helpers::verify_signature( $data[2], $data[1], $update_log );
 			if ( $verify != 1 ) {
-				nf_sub_updates_log(
-					$update_log,
-					sprintf( __('Error: The new rules %s digital signature is not correct. Aborting update, rules may have been tampered with.', 'nfwplus'),
-					htmlspecialchars($data[0]) )
-				);
 				return 0;
 			}
 

@@ -341,13 +341,13 @@ function nfw_create_loader() {
 		$exclude_waf_list = json_decode( $nfw_options['exclude_waf_list'] );
 		foreach( $exclude_waf_list as $folder ) {
 			if ( is_dir( ABSPATH . $folder ) ) {
-				$string .= "'$folder',";
+				$string .= var_export( $folder, true ) .',';
 			}
 		}
 		$string = rtrim( $string, ',' );
 		if (! empty( $string ) ) {
 			$loader .= "
-\$nfw_exclude_waf_list = array($string);
+\$nfw_exclude_waf_list = [$string];
 foreach( \$nfw_exclude_waf_list as \$nfw_exclude_waf_folder ) {
 	if (strpos(\$_SERVER['SCRIPT_FILENAME'], \"". ABSPATH ."\$nfw_exclude_waf_folder/\") === 0) {
 		return;

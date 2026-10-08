@@ -67,7 +67,7 @@
 
 
 		/**
-		 * When screen is resized, reloads the carousel in a determinded interval.
+		 * When screen is resized, reloads the carousel in a determined interval.
 		 *
 		 * @see    this._reloadCarousel()
 		 * @since  1.6.1

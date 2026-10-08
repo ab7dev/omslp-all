@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 (function($) {
 
 	FLBuilderSearchForm = function(settings) {
@@ -6,7 +7,7 @@
 		this.searchForm = $(this.nodeClass + ' .fl-search-form');
 		this.form       = this.searchForm.find('form');
 		this.input      = this.form.find('input[type=search]');
-		this.button     = this.searchForm.find('.fl-button:is(a, button), .fl-button:is(a, button) *');
+		this.button     = this.searchForm.find('.fl-button:is(a, button:not([type="submit"]), .fl-button:is(a, button:not([type="submit"]) *');
 		this.resultsEl  = $(this.nodeClass + ' .fl-search-results-content');
 
 		this._init();
@@ -38,6 +39,34 @@
 				t, et;
 
 			this.button.on('click', $.proxy(this._buttonClick, this));
+			this.input.on('input', (event) => {
+				const input = event.target;
+				if ( input.checkValidity() ) {
+					input.removeAttribute('aria-invalid');
+				} else {
+					input.setAttribute('aria-invalid', true);
+				}
+			});
+
+			if ( this.searchForm.hasClass('fl-search-button-expand') ) {
+				this.input.attr({'id':  'input-' + this.settings.id, 'tabindex': -1});
+				this.button.closest('.fl-button').attr({'aria-controls': 'input-' + this.settings.id, 'aria-expanded': false});
+			}
+			else if ( this.searchForm.hasClass('fl-search-button-reveal') ) {
+				const form = this.searchForm.find('.fl-search-form-input-wrap');
+				form.attr('id',  'form-' + this.settings.id);
+				this.button.closest('.fl-button').attr({'aria-controls': 'form-' + this.settings.id, 'aria-expanded': false, 'aria-haspopup': true});
+				form.on('focusout', (event) => {
+					if (form.is(':visible') && form.has($(event.relatedTarget)).length === 0) {
+						this._buttonClick(event);
+					}
+				});
+				this.searchForm.on('keydown', (event) => {
+					if (event.key === 'Escape' && form.is(':visible')) {
+						this.button.focus();
+					}
+				});
+			}
 
 			if ( 'ajax' == this.settings.result ) {
 				$(document).on('click touchend', function(e){
@@ -54,6 +83,9 @@
 				$this.form.on( 'submit', function (e) {
                     e.preventDefault();
 	            });
+
+				// Prevent auto-clearing errors in the FLBuilderLayout helper class.
+				this.input.off('focus');
 
 				this.input.on('keyup', function(e) {
                     if (window.event) {
@@ -100,6 +132,7 @@
 					if ($this.input.val().length < 3) {
 	                    $this._hideLoader();
 	                    $this._hideResults();
+	                    $this.input.attr('aria-invalid', true);
 	                    if ($this.post != null) $this.post.abort();
 	                    clearTimeout(t);
 	                    return;
@@ -129,11 +162,11 @@
 		},
 
 		_search: function(e) {
-			e.preventDefault();
-
-			if ($.trim(this.input.val()).length < 1) {
+			if ($.trim(this.input.val()).length < 1 || ('ajax' == this.settings.result && this.input.val().length < 3)) {
+				this.input.attr('aria-invalid', true);
 				return;
 			}
+			e.preventDefault();
 
 			if ( 'ajax' == this.settings.result ) {
 				this._doAjaxSearch();
@@ -154,8 +187,7 @@
 				ajaxData       = {},
 				self           = this;
 
-			if ( this.searching && 0 ) return;
-            if ( searchText.length < 1 ) return;
+			if ( searchText.length < 1 ) return;
 
 			this.searching = true;
 
@@ -169,6 +201,7 @@
 				template_id      : templateId,
 				template_node_id : templateNodeId,
 				node_id          : this.settings.id,
+				nonce            : this.settings.nonce,
 			}
 
 			// Check to see if searching the same keywords.
@@ -196,7 +229,7 @@
 			var inputWrap = this.searchForm.find('.fl-search-form-input-wrap'),
 				$this     = this;
 
-			if ('button' != this.settings.layout || 'fullscreen' != this.settings.btnAction) {
+			if ('button' !== this.settings.layout || ( 'fullscreen' !== this.settings.btnAction && 'reveal' !== this.settings.btnAction )) {
 				return;
 			}
 
@@ -229,11 +262,26 @@
 				this.searchForm.find('.fl-search-form-wrap').toggleClass('fl-search-expanded');
 
 				if (this.searchForm.find('.fl-search-form-wrap').hasClass('fl-search-expanded')) {
+					this.button.closest('.fl-button').attr('aria-expanded', true);
+					this.input.attr('tabindex', 0);
 					this.input.focus();
 				}
 				else {
 					this._hideResults();
+					this.input.attr('tabindex', -1);
+					this.button.closest('.fl-button').attr('aria-expanded', false);
 				}
+
+				return false;
+			} else if (this.searchForm.hasClass('fl-search-button-reveal') && $(e.target).closest('.fl-button:not([type="submit"])')) {
+				const form = this.searchForm.find('.fl-search-form-input-wrap');
+				if (e.detail && e.type === 'click' && form.is(':visible')) return false;
+				form.fadeToggle('fast', () => {
+					this.button.attr('aria-expanded', form.is(':visible'));
+					if (form.is(':visible')) {
+						this.input.focus();
+					}
+				});
 
 				return false;
 			} else {
@@ -273,7 +321,7 @@
 		},
 
 		_cleanInput: function(s) {
-	        return encodeURIComponent(s).replace(/\%20/g, '+');
+	        return encodeURIComponent(s).replace(/%20/g, '+');
 	    }
 
 	}

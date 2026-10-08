@@ -26,12 +26,23 @@ final class FLBuilderWPBlocks {
 
 		// Actions
 		add_action( 'enqueue_block_editor_assets', __CLASS__ . '::enqueue_block_editor_assets' );
+		add_action( 'init', __CLASS__ . '::register_block_style', 20 );
 
 		// Filters
 		add_filter( 'excerpt_allowed_blocks', __CLASS__ . '::excerpt_allowed_blocks' );
 
 		// Block Files
 		require_once FL_BUILDER_DIR . 'classes/class-fl-builder-wp-blocks-layout.php';
+	}
+
+	/**
+	 * Whether the block-editor CSS/JS panel (and its REST field) is enabled.
+	 *
+	 * @since 2.9
+	 * @return bool
+	 */
+	static public function css_js_panel_enabled() {
+		return ( defined( 'FL_ENABLE_META_CSS_EDIT' ) && FL_ENABLE_META_CSS_EDIT ) || (bool) get_transient( 'fl_debug_mode' );
 	}
 
 	/**
@@ -54,33 +65,30 @@ final class FLBuilderWPBlocks {
 		$post_type_name   = $post_type_object->labels->singular_name;
 		$min              = ( ! FLBuilder::is_debug() ) ? '.min' : '';
 
-		wp_enqueue_style(
-			'fl-builder-wp-editor',
-			FLBuilder::plugin_url() . 'css/build/wp-editor.bundle' . $min . '.css',
-			array(),
-			FL_BUILDER_VERSION
-		);
-
 		wp_enqueue_script(
 			'fl-builder-wp-editor',
 			FLBuilder::plugin_url() . 'js/build/wp-editor.bundle' . $min . '.js',
-			array( 'wp-edit-post' ),
+			array( 'wp-edit-post', 'wp-plugins', 'wp-core-data' ),
 			FL_BUILDER_VERSION
 		);
 
 		wp_localize_script( 'fl-builder-wp-editor', 'FLBuilderConfig', array(
-			'builder' => array(
+			'builder'    => array(
 				'access'       => FLBuilderUserAccess::current_user_can( 'builder_access' ),
 				'enabled'      => FLBuilderModel::is_builder_enabled( $post->ID ),
 				'nonce'        => wp_create_nonce( 'fl_ajax_update' ),
 				'unrestricted' => FLBuilderUserAccess::current_user_can( 'unrestricted_editing' ),
+				/**
+				 * Whether to render the builder's admin edit UI button in the block editor toolbar.
+				 */
 				'showui'       => apply_filters( 'fl_builder_render_admin_edit_ui', true ),
 				'pagenow'      => $pagenow,
 			),
-			'post'    => array(
+			'cssJsPanel' => self::css_js_panel_enabled(),
+			'post'       => array(
 				'id' => $post->ID,
 			),
-			'strings' => array(
+			'strings'    => array(
 				/* translators: 1: branded builder name: 2: post type name */
 				'active'      => sprintf( _x( '%1$s is currently active for this %2$s.', '%1$s branded builder name. %2$s post type name.', 'fl-builder' ), $branding, strtolower( $post_type_name ) ),
 				/* translators: %s: post type name */
@@ -95,14 +103,38 @@ final class FLBuilderWPBlocks {
 				'view'        => sprintf( _x( 'View %s', '%s post type name.', 'fl-builder' ), $post_type_name ),
 				'warning'     => __( 'Switching to the native WordPress editor will disable your Beaver Builder layout until it is enabled again. Any edits made in the WordPress editor will not be converted to your Page Builder layout. Do you want to continue?', 'fl-builder' ),
 			),
-			'urls'    => array(
+			'urls'       => array(
 				'edit' => FLBuilderModel::get_edit_url( $post->ID ),
 				'view' => get_permalink( $post->ID ),
 			),
-			'wp'      => array(
+			'wp'         => array(
 				'version' => $wp_version,
 			),
 		) );
+	}
+
+	/**
+	 * Registers the block stylesheet via wp_enqueue_block_style() so it is
+	 * injected into the block editor iframe (required for apiVersion: 3 blocks).
+	 *
+	 * @since 2.10
+	 * @return void
+	 */
+	static public function register_block_style() {
+		if ( ! function_exists( 'wp_enqueue_block_style' ) ) {
+			return;
+		}
+
+		$min = ( ! FLBuilder::is_debug() ) ? '.min' : '';
+
+		wp_enqueue_block_style(
+			'fl-builder/layout',
+			array(
+				'handle' => 'fl-builder-wp-editor',
+				'src'    => FLBuilder::plugin_url() . 'css/build/wp-editor.bundle' . $min . '.css',
+				'ver'    => FL_BUILDER_VERSION,
+			)
+		);
 	}
 
 	/**

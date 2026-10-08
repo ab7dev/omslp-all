@@ -41,6 +41,22 @@ final class FLThemeBuilderLayoutData {
 	}
 
 	/**
+	 * Returns the current post's Themer layout type.
+	 *
+	 * @since 2.11
+	 * @return string|null
+	 */
+	static public function current_post_layout_type() {
+		global $post;
+
+		if ( 'fl-theme-layout' != get_post_type() ) {
+			return null;
+		}
+
+		return get_post_meta( $post->ID, '_fl_theme_layout_type', true );
+	}
+
+	/**
 	 * Checks to see if a layout with the given post ID
 	 * is supported by the current theme.
 	 *
@@ -95,6 +111,9 @@ final class FLThemeBuilderLayoutData {
 	 * @return array
 	 */
 	static public function get_part_hooks() {
+		/**
+		 * Array of WordPress action hook locations where theme part layouts can be rendered.
+		 */
 		return apply_filters( 'fl_theme_builder_part_hooks', array() );
 	}
 
@@ -121,7 +140,7 @@ final class FLThemeBuilderLayoutData {
 			$post_id = get_the_ID();
 			$type    = get_post_meta( $post_id, '_fl_theme_layout_type', true );
 
-			if ( in_array( $type, array( 'singular', 'archive', '404', 'part' ) ) ) {
+			if ( in_array( $type, array( 'singular', 'archive', '404', 'part', 'popup' ) ) ) {
 				return self::get_current_page_layout_ids( $type );
 			} elseif ( ! FLThemeBuilderLayoutData::is_layout_supported( $post_id ) ) {
 				return self::get_current_page_layout_ids( $type );
@@ -293,6 +312,9 @@ final class FLThemeBuilderLayoutData {
 				uasort( $layouts[ $layout_type ], array( 'FLThemeBuilderLayoutData', 'order_layouts' ) );
 			}
 
+			/**
+			 * Array of theme builder layouts matched to the current page after location and user rules have been evaluated.
+			 */
 			self::$current_page_layouts = apply_filters( 'fl_theme_builder_current_page_layouts', $layouts );
 		}
 

@@ -77,7 +77,7 @@ class APCu {
 			// phpcs:ignore
 			set_error_handler( null );
 			// phpcs:ignore
-			$info = @apcu_cache_info( false );
+			$info = @apcu_cache_info( true );
 			// phpcs:ignore
 			restore_error_handler();
 			if ( is_array( $info ) && array_key_exists( 'memory_type', $info ) ) {
@@ -114,7 +114,7 @@ class APCu {
 	 */
 	public static function reset() {
 		if ( function_exists( 'apcu_cache_info' ) && function_exists( 'apcu_delete' ) ) {
-			$infos    = apcu_cache_info( false );
+			$infos    = apcu_cache_info(  false );
 			$prefixes = self::get_prefixes();
 			if ( is_array( $infos ) && array_key_exists( 'cache_list', $infos ) && is_array( $infos['cache_list'] ) ) {
 				foreach ( $infos['cache_list'] as $object ) {
@@ -159,7 +159,7 @@ class APCu {
 		$result = [];
 		if ( function_exists( 'apcu_cache_info' ) ) {
 			try {
-				$raw      = apcu_cache_info( false );
+				$raw      = apcu_cache_info(  false );
 				$prefixes = self::get_prefixes();
 				if ( is_array( $raw ) && array_key_exists( 'cache_list', $raw ) ) {
 					foreach ( $raw['cache_list'] as $object ) {
@@ -214,6 +214,29 @@ class APCu {
 			} catch ( \Throwable $e ) {
 				\DecaLog\Engine::eventsLogger( APCM_SLUG )->error( sprintf( 'Unable to query APCu status: %s.', $e->getMessage() ), [ 'code' => $e->getCode() ] );
 			}
+		}
+		return $result;
+	}
+
+	/**
+	 * Get the detailed list of all cleaned objects.
+	 *
+	 * @param boolean   $self_only  Optional. Restrict the list to self objects.
+	 * @return array    The detailed list.
+	 * @since   4.5.0
+	 */
+	public static function get_all_cleaned_objects( $self_only = true ) {
+		$result = [];
+		$objects = self::get_all_objects( $self_only );
+		foreach ( $objects as $object ) {
+			if ( $object['oid'] !== esc_attr( $object['oid'] ) || $object['oid'] !== esc_html( $object['oid'] ) ) {
+				$object['is_clean'] = false;
+				$object['object'] = 'N/A';
+				$object['path'] = '/';
+			} else {
+				$object['is_clean'] = true;
+			}
+			$result[] = $object;
 		}
 		return $result;
 	}

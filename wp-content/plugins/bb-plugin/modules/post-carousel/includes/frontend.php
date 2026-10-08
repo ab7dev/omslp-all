@@ -19,8 +19,8 @@ if ( $query->have_posts() ) :
 		<?php if ( 'yes' == $settings->navigation && $query->have_posts() ) : ?>
 		<div class="fl-post-carousel-navigation" aria-label="carousel buttons">
 			<?php if ( 1 == $module->version ) : ?>
-				<a class="carousel-prev" href="#" aria-label="previous" role="button"><div class="fl-post-carousel-svg-container"><?php include FL_BUILDER_DIR . 'img/svg/arrow-left.svg'; ?></div></a>
-				<a class="carousel-next" href="#" aria-label="next" role="button"><div class="fl-post-carousel-svg-container"><?php include FL_BUILDER_DIR . 'img/svg/arrow-right.svg'; ?></div></a>
+				<a class="carousel-prev" aria-label="previous" role="button" tabindex="0"><div class="fl-post-carousel-svg-container"><?php include FL_BUILDER_DIR . 'img/svg/arrow-left.svg'; ?></div></a>
+				<a class="carousel-next" aria-label="next" role="button" tabindex="0"><div class="fl-post-carousel-svg-container"><?php include FL_BUILDER_DIR . 'img/svg/arrow-right.svg'; ?></div></a>
 			<?php else : ?>
 				<button class="carousel-prev fl-content-ui-button" aria-label="previous" type="button"><div class="fl-post-carousel-svg-container"><?php include FL_BUILDER_DIR . 'img/svg/arrow-left.svg'; ?></div></button>
 				<button class="carousel-next fl-content-ui-button" aria-label="next" type="button"><div class="fl-post-carousel-svg-container"><?php include FL_BUILDER_DIR . 'img/svg/arrow-right.svg'; ?></div></button>
@@ -36,6 +36,9 @@ if ( $query->have_posts() ) :
 
 				ob_start();
 
+				/**
+				 * Path to the layout template file used to render each post in the post carousel.
+				 */
 				include apply_filters( 'fl_builder_posts_carousel_layout_path', $module->dir . 'includes/post-' . $layout . '-loop.php', $settings->layout, $settings, $module );
 
 				// Do shortcodes here so they are parsed in context of the current post.

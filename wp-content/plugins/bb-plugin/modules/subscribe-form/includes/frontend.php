@@ -1,6 +1,9 @@
 <?php
 
-$form_tag              = 1 === $module->version ? 'div role="form"' : 'form';
+$form_tag = 1 === $module->version ? 'div role="form"' : 'form';
+/**
+ * Array of field name mappings for the subscribe form before rendering.
+ */
 $subscribe_form_fields = apply_filters( 'fl_builder_subscribe_form_fields', array(
 	'form_name'   => 'fl-subscribe-form-name',
 	'form_email'  => 'fl-subscribe-form-email',

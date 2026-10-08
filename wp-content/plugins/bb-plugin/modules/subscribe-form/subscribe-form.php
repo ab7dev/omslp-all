@@ -317,6 +317,9 @@ class FLSubscribeFormModule extends FLBuilderModule {
 					}
 				}
 
+				/**
+				 * Fires after a subscribe form submission has been processed successfully.
+				 */
 				do_action( 'fl_builder_subscribe_form_submission_complete', $response, $settings, $email, $name, $template_id, $post_id );
 			}
 		} else {
@@ -780,6 +783,7 @@ FLBuilder::register_module( 'FLSubscribeFormModule', array(
 						'type'        => 'icon',
 						'label'       => __( 'Icon', 'fl-builder' ),
 						'show_remove' => true,
+						'connections' => array( 'icon' ),
 						'show'        => array(
 							'fields' => array( 'btn_icon_position', 'btn_icon_animation' ),
 						),

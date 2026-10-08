@@ -4,9 +4,6 @@
 body.rtl .fl-module-post-slider .bx-viewport {
 	direction: ltr;
 }
-.fl-module-post-slider .bx-wrapper {
-	margin: 0 auto 40px;
-}
 .fl-module-post-slider .bx-controls {
 	width: 100%;
 	position: absolute;
@@ -28,9 +25,6 @@ body.rtl .fl-module-post-slider .bx-viewport {
 	all: unset;
 	cursor: pointer;
 	position: absolute;
-}
-.fl-post-slider-navigation button:focus{
-	outline: 1px auto -webkit-focus-ring-color;
 }
 .fl-post-slider-navigation a,
 .fl-post-slider-navigation button{
@@ -63,7 +57,8 @@ body.rtl .fl-module-post-slider .bx-viewport {
 .fl-post-slider-navigation button.disabled,
 .bx-controls a.disabled,
 .bx-controls button.disabled {
-	pointer-events: none;
+	cursor: not-allowed;
+	opacity: .2;
 }
 
 /*Module styles =======================================*/

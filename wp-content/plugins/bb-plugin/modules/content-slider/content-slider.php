@@ -33,16 +33,17 @@ class FLContentSliderModule extends FLBuilderModule {
 
 		// Handle slide settings.
 		for ( $i = 0; $i < count( $settings->slides ); $i++ ) {
+			$slide = $settings->slides[ $i ];
 
-			if ( ! is_object( $settings->slides[ $i ] ) ) {
+			if ( ! is_object( $slide ) ) {
 				continue;
 			}
 
 			// Old slide text bg opacity.
-			$helper->handle_opacity_inputs( $settings->slides[ $i ], 'text_bg_opacity', 'text_bg_color' );
+			$helper->handle_opacity_inputs( $slide, 'text_bg_opacity', 'text_bg_color' );
 
 			// Handle old button module settings.
-			$helper->filter_child_module_settings( 'button', $settings->slides[ $i ], array(
+			$helper->filter_child_module_settings( 'button', $slide, array(
 				'btn_3d'                 => 'three_d',
 				'btn_style'              => 'style',
 				'btn_padding'            => 'padding',
@@ -64,24 +65,24 @@ class FLContentSliderModule extends FLBuilderModule {
 			) );
 
 			// Handle old text/title size
-			if ( isset( $settings->slides[ $i ]->title_size ) && 'custom' == $settings->slides[ $i ]->title_size && isset( $settings->slides[ $i ]->title_custom_size ) && ! empty( $settings->slides[ $i ]->title_custom_size ) ) {
-				$settings->slides[ $i ]->title_typography = array_merge(
-					is_array( $settings->slides[ $i ]->title_typography ) ? $settings->slides[ $i ]->title_typography : array(),
+			if ( isset( $slide->title_size ) && 'custom' == $slide->title_size && isset( $slide->title_custom_size ) && ! empty( $slide->title_custom_size ) ) {
+				$slide->title_typography = array_merge(
+					is_array( $slide->title_typography ) ? $slide->title_typography : array(),
 					array(
 						'font_size' => array(
 							'unit'   => 'px',
-							'length' => $settings->slides[ $i ]->title_custom_size,
+							'length' => $slide->title_custom_size,
 						),
 					)
 				);
 
-				unset( $settings->slides[ $i ]->title_custom_size );
+				unset( $slide->title_custom_size );
 			}
 
 			// Handle old text/title shadow
-			if ( isset( $settings->slides[ $i ]->text_shadow ) && '1' == $settings->slides[ $i ]->text_shadow ) {
-				$settings->slides[ $i ]->title_typography = array_merge(
-					is_array( $settings->slides[ $i ]->title_typography ) ? $settings->slides[ $i ]->title_typography : array(),
+			if ( isset( $slide->text_shadow ) && '1' == $slide->text_shadow ) {
+				$slide->title_typography = array_merge(
+					is_array( $slide->title_typography ) ? $slide->title_typography : array(),
 					array(
 						'text_shadow' => array(
 							'color'      => 'rgba(0,0,0,0.3)',
@@ -92,8 +93,8 @@ class FLContentSliderModule extends FLBuilderModule {
 					)
 				);
 
-				$settings->slides[ $i ]->text_typography = array_merge(
-					is_array( $settings->slides[ $i ]->text_typography ) ? $settings->slides[ $i ]->text_typography : array(),
+				$slide->text_typography = array_merge(
+					is_array( $slide->text_typography ) ? $slide->text_typography : array(),
 					array(
 						'text_shadow' => array(
 							'color'      => 'rgba(0,0,0,0.3)',
@@ -104,15 +105,15 @@ class FLContentSliderModule extends FLBuilderModule {
 					)
 				);
 
-				unset( $settings->slides[ $i ]->text_shadow );
+				unset( $slide->text_shadow );
 			}
 
 			// Handle old text/title color
-			if ( isset( $settings->slides[ $i ]->title_size ) ) {
-				$settings->slides[ $i ]->title_color   = $settings->slides[ $i ]->text_color;
-				$settings->slides[ $i ]->r_title_color = $settings->slides[ $i ]->r_text_color;
+			if ( isset( $slide->title_size ) ) {
+				$slide->title_color   = $slide->text_color;
+				$slide->r_title_color = $slide->r_text_color;
 
-				unset( $settings->slides[ $i ]->title_size );
+				unset( $slide->title_size );
 			}
 		}
 		return $settings;
@@ -131,7 +132,12 @@ class FLContentSliderModule extends FLBuilderModule {
 
 		// Background link
 		if ( ! empty( $slide->link ) && ( 'photo' == $slide->bg_layout || 'color' == $slide->bg_layout ) && 'none' == $slide->cta_type ) {
-			echo '<a class="fl-slide-bg-link" href="' . esc_attr( $slide->link ) . '"' . ( ( isset( $slide->link_download ) && 'yes' === $slide->link_download ) ? ' download' : '' ) . ' target="' . esc_attr( $slide->link_target ) . '" aria-label="' . esc_attr( $slide->title ) . '"></a>';
+			$options    = array(
+				'class'      => 'fl-slide-bg-link',
+				'aria-label' => $slide->title,
+			);
+			$attributes = FLBuilderModuleUtils::get_link_attributes( $slide, 'link', $options );
+			echo '<a ' . $attributes . '></a>';
 		}
 	}
 
@@ -178,10 +184,11 @@ class FLContentSliderModule extends FLBuilderModule {
 			echo '<div class="fl-slide-photo">';
 
 			if ( ! empty( $slide->link ) ) {
-				echo '<a href="' . esc_url( do_shortcode( $slide->link ) ) . '" ' . ( ( isset( $slide->link_download ) && 'yes' === $slide->link_download ) ? ' download' : '' ) . ' target="' . esc_attr( $slide->link_target ) . '">';
+				echo '<a ' . FLBuilderModuleUtils::get_link_attributes( $slide, 'link' ) . '>';
 			}
 
-			printf( '<img %s class="fl-slide-photo-img wp-image-%s" src="%s" alt="%s" />', FLBuilderUtils::img_lazyload( 'false' ), $slide->fg_photo, $slide->fg_photo_src, esc_attr( $alt ) );
+			$string = '<img %s class="fl-slide-photo-img wp-image-%s" src="%s" alt="%s" />';
+			printf( $string, FLBuilderUtils::img_lazyload( 'false' ), $slide->fg_photo, $slide->fg_photo_src, esc_attr( $alt ) );
 
 			if ( ! empty( $slide->link ) ) {
 				echo '</a>';
@@ -226,11 +233,12 @@ class FLContentSliderModule extends FLBuilderModule {
 				$mobile_photo_link_close = '';
 
 				if ( ! empty( $slide->link ) ) {
-					$mobile_photo_link_open  = '<a href="' . esc_url( do_shortcode( $slide->link ) ) . '" target="' . esc_attr( $slide->link_target ) . '">';
+					$mobile_photo_link_open  = '<a ' . FLBuilderModuleUtils::get_link_attributes( $slide, 'link' ) . '>';
 					$mobile_photo_link_close = '</a>';
 				}
 				echo '<div class="fl-slide-mobile-photo">';
-				printf( '%s<img %s class="fl-slide-mobile-photo-img wp-image-%s" src="%s" alt="%s" />%s', $mobile_photo_link_open, FLBuilderUtils::img_lazyload( 'false' ), $id, $src, esc_attr( $alt ), $mobile_photo_link_close );
+				$string = '%s<img %s class="fl-slide-mobile-photo-img wp-image-%s" src="%s" alt="%s" />%s';
+				printf( $string, $mobile_photo_link_open, FLBuilderUtils::img_lazyload( 'false' ), $id, $src, esc_attr( $alt ), $mobile_photo_link_close );
 				echo '</div>';
 			}
 		} elseif ( 'video' == $slide->content_layout && ! empty( $slide->fg_video ) ) {
@@ -252,7 +260,8 @@ class FLContentSliderModule extends FLBuilderModule {
 
 			if ( ! empty( $src ) ) {
 				echo '<div class="fl-slide-mobile-photo">';
-				printf( '<img %s class="fl-slide-mobile-photo-img wp-image-%s" src="%s" alt="%s" />', FLBuilderUtils::img_lazyload( 'false' ), $id, $src, esc_attr( $alt ) );
+				$string = '<img %s class="fl-slide-mobile-photo-img wp-image-%s" src="%s" alt="%s" />';
+				printf( $string, FLBuilderUtils::img_lazyload( 'false' ), $id, $src, esc_attr( $alt ) );
 				echo '</div>';
 			}
 		}
@@ -263,7 +272,8 @@ class FLContentSliderModule extends FLBuilderModule {
 	 */
 	public function render_link( $slide ) {
 		if ( 'link' == $slide->cta_type ) {
-			return '<a href="' . esc_url( do_shortcode( $slide->link ) ) . '"' . ( ( isset( $slide->link_download ) && 'yes' === $slide->link_download ) ? ' download' : '' ) . ' target="' . esc_attr( $slide->link_target ) . '" class="fl-slide-cta-link">' . $slide->cta_text . '</a>';
+			$attributes = FLBuilderModuleUtils::get_link_attributes( $slide, 'link', [ 'class' => 'fl-slide-cta-link' ] );
+			return '<a ' . $attributes . '>' . $slide->cta_text . '</a>';
 		}
 	}
 
@@ -882,6 +892,7 @@ FLBuilder::register_settings_form('content_slider_slide', array(
 							'type'        => 'icon',
 							'label'       => __( 'Button Icon', 'fl-builder' ),
 							'show_remove' => true,
+							'connections' => array( 'icon' ),
 							'show'        => array(
 								'fields' => array( 'btn_icon_position', 'btn_icon_animation' ),
 							),

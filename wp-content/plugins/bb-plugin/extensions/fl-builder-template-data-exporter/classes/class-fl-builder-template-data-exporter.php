@@ -108,7 +108,10 @@ final class FLBuilderTemplateDataExporter {
 		$rows    = self::get_ui_data( 'row' );
 		$modules = self::get_ui_data( 'module' );
 		$columns = self::get_ui_data( 'column' );
-		$other   = apply_filters( 'fl_builder_exporter_ui_data', array() );
+		/**
+		 * Configuration data passed to the template exporter UI.
+		 */
+		$other = apply_filters( 'fl_builder_exporter_ui_data', array() );
 
 		include FL_BUILDER_TEMPLATE_DATA_EXPORTER_DIR . 'includes/template-data-exporter.php';
 	}
@@ -148,6 +151,9 @@ final class FLBuilderTemplateDataExporter {
 			$templates['column'] = self::get_template_export_data( $_POST['fl-builder-export-column'] );
 		}
 
+		/**
+		 * Array of templates selected for export.
+		 */
 		$templates = apply_filters( 'fl_builder_exporter_templates', $templates );
 
 		header( 'X-Robots-Tag: noindex, nofollow', true );
@@ -317,7 +323,10 @@ final class FLBuilderTemplateDataExporter {
 			// Get the template thumbnail.
 			if ( has_post_thumbnail( $post->ID ) ) {
 				$attachment_image_src = wp_get_attachment_image_src( get_post_thumbnail_id( $post->ID ), 'medium_large' );
-				$template->image      = apply_filters( 'fl_builder_exporter_template_thumb_src', $attachment_image_src[0], $post, $template );
+				/**
+				 * Thumbnail image URL for a template being exported.
+				 */
+				$template->image = apply_filters( 'fl_builder_exporter_template_thumb_src', $attachment_image_src[0], $post, $template );
 			}
 
 			/**

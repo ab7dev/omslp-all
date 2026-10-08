@@ -191,7 +191,39 @@ FLBuilder::register_settings_form('styles', array(
 					'title'     => __( 'Button', 'fl-builder' ),
 					'collapsed' => true,
 					'fields'    => array(
-						'button_color'              => array(
+						'button_width'                     => array(
+							'type'    => 'select',
+							'label'   => __( 'Width', 'fl-builder' ),
+							'default' => 'auto',
+							'options' => array(
+								'auto'   => _x( 'Auto', 'Width.', 'fl-builder' ),
+								'full'   => __( 'Full Width', 'fl-builder' ),
+								'custom' => __( 'Custom', 'fl-builder' ),
+							),
+							'toggle'  => array(
+								'custom' => array(
+									'fields' => array( 'button_custom_width' ),
+								),
+							),
+						),
+						'button_custom_width'              => array(
+							'type'    => 'unit',
+							'label'   => __( 'Custom Width', 'fl-builder' ),
+							'default' => '200',
+							'slider'  => array(
+								'px' => array(
+									'min'  => 0,
+									'max'  => 1000,
+									'step' => 10,
+								),
+							),
+							'units'   => array(
+								'px',
+								'vw',
+								'%',
+							),
+						),
+						'button_color'                     => array(
 							'type'        => 'color',
 							'label'       => __( 'Color', 'fl-builder' ),
 							'default'     => '',
@@ -199,7 +231,7 @@ FLBuilder::register_settings_form('styles', array(
 							'show_alpha'  => true,
 							'connections' => array( 'color' ),
 						),
-						'button_hover_color'        => array(
+						'button_hover_color'               => array(
 							'type'        => 'color',
 							'label'       => __( 'Hover Color', 'fl-builder' ),
 							'default'     => '',
@@ -207,7 +239,28 @@ FLBuilder::register_settings_form('styles', array(
 							'show_alpha'  => true,
 							'connections' => array( 'color' ),
 						),
-						'button_background'         => array(
+						'button_background_style'          => array(
+							'type'    => 'select',
+							'label'   => __( 'Background Style', 'fl-builder' ),
+							'default' => 'flat',
+							'options' => array(
+								'flat'         => __( 'Flat', 'fl-builder' ),
+								'gradient'     => __( 'Auto Gradient', 'fl-builder' ),
+								'adv-gradient' => __( 'Advanced Gradient', 'fl-builder' ),
+							),
+							'toggle'  => array(
+								'flat'         => array(
+									'fields' => array( 'button_background', 'button_hover_background' ),
+								),
+								'gradient'     => array(
+									'fields' => array( 'button_background', 'button_hover_background' ),
+								),
+								'adv-gradient' => array(
+									'fields' => array( 'button_background_gradient', 'button_hover_background_gradient' ),
+								),
+							),
+						),
+						'button_background'                => array(
 							'type'        => 'color',
 							'label'       => __( 'Background', 'fl-builder' ),
 							'default'     => '',
@@ -215,7 +268,7 @@ FLBuilder::register_settings_form('styles', array(
 							'show_alpha'  => true,
 							'connections' => array( 'color' ),
 						),
-						'button_hover_background'   => array(
+						'button_hover_background'          => array(
 							'type'        => 'color',
 							'label'       => __( 'Hover Background', 'fl-builder' ),
 							'default'     => '',
@@ -223,17 +276,25 @@ FLBuilder::register_settings_form('styles', array(
 							'show_alpha'  => true,
 							'connections' => array( 'color' ),
 						),
-						'button_typography'         => array(
+						'button_background_gradient'       => array(
+							'type'  => 'gradient',
+							'label' => __( 'Background Gradient', 'fl-builder' ),
+						),
+						'button_hover_background_gradient' => array(
+							'type'  => 'gradient',
+							'label' => __( 'Hover Background Gradient', 'fl-builder' ),
+						),
+						'button_typography'                => array(
 							'type'       => 'typography',
 							'label'      => __( 'Typography', 'fl-builder' ),
 							'responsive' => true,
 						),
-						'button_border'             => array(
+						'button_border'                    => array(
 							'type'       => 'border',
 							'label'      => __( 'Border', 'fl-builder' ),
 							'responsive' => true,
 						),
-						'button_border_hover_color' => array(
+						'button_border_hover_color'        => array(
 							'type'        => 'color',
 							'connections' => array( 'color' ),
 							'label'       => __( 'Border Hover Color', 'fl-builder' ),
@@ -241,6 +302,13 @@ FLBuilder::register_settings_form('styles', array(
 							'show_reset'  => true,
 							'show_alpha'  => true,
 							'connections' => array( 'color' ),
+						),
+						'button_padding'                   => array(
+							'type'       => 'dimension',
+							'label'      => __( 'Padding', 'fl-builder' ),
+							'responsive' => true,
+							'slider'     => true,
+							'units'      => array( 'px' ),
 						),
 					),
 				),
@@ -272,5 +340,59 @@ FLBuilder::register_settings_form('styles', array(
 				),
 			),
 		),
+		'outlines' => array(
+			'title'       => __( 'Outlines', 'fl-builder' ),
+			'description' => __( 'These settings apply to all interactive elements to highlight keyboard focus.', 'fl-builder' ),
+			'sections'    => array(
+				'outlines' => array(
+					'fields' => array(
+						'outlines_color'  => array(
+							'type'        => 'color',
+							'label'       => __( 'Color', 'fl-builder' ),
+							'show_reset'  => true,
+							'show_alpha'  => true,
+							'connections' => array( 'color' ),
+						),
+						'outlines_style'  => array(
+							'type'    => 'select',
+							'label'   => __( 'Style', 'fl-builder' ),
+							'default' => 'solid',
+							'options' => array(
+								'solid'  => __( 'Solid', 'fl-builder' ),
+								'dashed' => __( 'Dashed', 'fl-builder' ),
+								'dotted' => __( 'Dotted', 'fl-builder' ),
+								'double' => __( 'Double', 'fl-builder' ),
+							),
+						),
+						'outlines_width'  => array(
+							'type'    => 'unit',
+							'label'   => __( 'Width', 'fl-builder' ),
+							'default' => 2,
+							'slider'  => array(
+								'px' => array(
+									'min'  => 0,
+									'max'  => 100,
+									'step' => 1,
+								),
+							),
+							'units'   => array( 'px' ),
+						),
+						'outlines_offset' => array(
+							'type'    => 'unit',
+							'label'   => __( 'Offset', 'fl-builder' ),
+							'default' => 2,
+							'slider'  => array(
+								'px' => array(
+									'min'  => 0,
+									'max'  => 100,
+									'step' => 1,
+								),
+							),
+							'units'   => array( 'px' ),
+						),
+					),
+				),
+			),
+		),
 	),
-));
+) );

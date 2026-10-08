@@ -1,9 +1,5 @@
 (function($){
 
-	FLBuilder.addHook( 'didRenderLayoutJSComplete', function() {
-		FLBuilder._moduleHelpers.accordion._previewContent();
-	} );
-
 	FLBuilder.registerModuleHelper('accordion', {
 
 		init: function()
@@ -26,10 +22,9 @@
 			this._setMoreLink();
 			source.on( 'change', this._setMoreLink );
 			contentType.on( 'change', this._setMoreLink );
-			this._previewContent();
 		},
 
-		_setMoreLink: function(e) {
+		_setMoreLink: function() {
 			var form  = $( '.fl-builder-settings' ),
 				contentSource = form.find( 'select[name=source]' ).val(),
 				contentType = form.find( 'select[name=content_type]' ).val(),
@@ -63,23 +58,6 @@
 			} else {
 				$('#fl-field-duo_color1').hide();
 				$('#fl-field-duo_color2').hide();
-			}
-		},
-
-		_previewContent: function()
-		{
-			var form = $( '.fl-builder-accordion-settings:visible' );
-			var preview = FLBuilder.preview;
-
-			if ( ! form.length || ! preview || ! preview.elements.node ) {
-				return;
-			}
-
-			var settings = FLBuilder._getSettings( form );
-			var content = preview.elements.node.find( '.fl-accordion-content' ).eq( 0 )
-
-			if ( 1 != settings.open_first && ! content.is( ':visible' ) ) {
-				preview.elements.node.find( '.fl-accordion-button' ).eq( 0 ).trigger( 'click' );
 			}
 		},
 

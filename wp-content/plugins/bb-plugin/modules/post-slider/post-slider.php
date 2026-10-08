@@ -414,6 +414,9 @@ class FLPostSliderModule extends FLBuilderModule {
 
 		$classes[] = 'swiper-slide';
 
+		/**
+		 * Array of CSS classes added to the post slider module wrapper element.
+		 */
 		post_class( apply_filters( 'fl_builder_post_slider_classes', $classes, $settings ) );
 	}
 
@@ -1124,7 +1127,7 @@ FLBuilder::register_module('FLPostSliderModule', array(
 	),
 
 	'content' => array(
-		'title' => __( 'Content', 'fl-builder' ),
+		'title' => __( 'Query', 'fl-builder' ),
 		'file'  => FL_BUILDER_DIR . 'includes/loop-settings.php',
 	),
 ));

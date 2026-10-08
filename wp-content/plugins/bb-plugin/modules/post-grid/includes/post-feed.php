@@ -13,7 +13,16 @@
 				<a href="<?php the_permalink(); ?>" rel="bookmark" title="<?php the_title_attribute(); ?>"><?php the_title(); ?></a>
 			</<?php echo esc_attr( $settings->posts_title_tag ); ?>>
 
-			<?php do_action( 'fl_builder_post_feed_before_meta', $settings, $module ); ?>
+			<?php
+			/**
+			 * Fires before the post feed meta (author, date, comments) is rendered.
+			 *
+			 * @since 1.0
+			 * @param object $settings Module settings.
+			 * @param object $module   The post grid module instance.
+			 */
+			do_action( 'fl_builder_post_feed_before_meta', $settings, $module );
+			?>
 
 			<?php if ( $settings->show_author || $settings->show_date || $settings->show_comments ) : ?>
 			<div class="fl-post-feed-meta">
@@ -62,7 +71,16 @@
 			</div>
 			<?php endif; ?>
 
-			<?php do_action( 'fl_builder_post_feed_after_meta', $settings, $module ); ?>
+			<?php
+			/**
+			 * Fires after the post feed meta (author, date, comments) is rendered.
+			 *
+			 * @since 1.0
+			 * @param object $settings Module settings.
+			 * @param object $module   The post grid module instance.
+			 */
+			do_action( 'fl_builder_post_feed_after_meta', $settings, $module );
+			?>
 
 		</div>
 
@@ -76,7 +94,16 @@
 	<div class="fl-post-feed-text">
 	<?php endif; ?>
 
-		<?php do_action( 'fl_builder_post_feed_before_content', $settings, $module ); ?>
+		<?php
+		/**
+		 * Fires before the post feed content (excerpt, more link) is rendered.
+		 *
+		 * @since 1.0
+		 * @param object $settings Module settings.
+		 * @param object $module   The post grid module instance.
+		 */
+		do_action( 'fl_builder_post_feed_before_content', $settings, $module );
+		?>
 
 		<?php if ( $settings->show_content || $settings->show_more_link ) : ?>
 		<div class="fl-post-feed-content" itemprop="text">
@@ -101,7 +128,16 @@
 		</div>
 		<?php endif; ?>
 
-		<?php do_action( 'fl_builder_post_feed_after_content', $settings, $module ); ?>
+		<?php
+		/**
+		 * Fires after the post feed content (excerpt, more link) is rendered.
+		 *
+		 * @since 1.0
+		 * @param object $settings Module settings.
+		 * @param object $module   The post grid module instance.
+		 */
+		do_action( 'fl_builder_post_feed_after_content', $settings, $module );
+		?>
 
 	</div>
 

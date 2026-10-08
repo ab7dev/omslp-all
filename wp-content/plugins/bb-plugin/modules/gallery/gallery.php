@@ -29,6 +29,9 @@ class FLGalleryModule extends FLBuilderModule {
 		$this->add_js( 'jquery-mosaicflow' );
 		$this->add_js( 'imagesloaded' );
 
+		/**
+		 * Whether to use a custom lightbox instead of the builder's built-in lightbox in the Gallery module.
+		 */
 		$override_lightbox = apply_filters( 'fl_builder_override_lightbox', false );
 		if ( ! $override_lightbox ) {
 			$this->add_js( 'jquery-magnificpopup' );

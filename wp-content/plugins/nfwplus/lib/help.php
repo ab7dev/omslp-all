@@ -78,7 +78,7 @@ function help_nfsubopt() {
 		<p><span class="dashicons dashicons-warning nfw-warning"></span>'.
 		__('This option requires that your PHP version was compiled with the <code>--enable-shmop</code> parameter, otherwise, if it is not compatible with your server/hosting environment, it will be disabled.', 'nfwplus') . '</p>
 		<p><span class="dashicons dashicons-warning nfw-warning"></span>' .
-		sprintf( __('If you are using <a href="%s">GB2312</a> character set (A.K.A <code>GBK</code> - simplified Chinese characters) for your database, we recommend to disable that option otherwise NinjaFirewall will not have access to the database and it may not be able to properly sanitise multi-byte characters used by that charset.', 'nfwplus'), 'http://en.wikipedia.org/wiki/GBK') . '</p>'
+		sprintf( __('If you are using <a href="%s">GB2312</a> character set (A.K.A <code>GBK</code> - simplified Chinese characters) for your database, we recommend to disable that option otherwise NinjaFirewall will not have access to the database and it may not be able to properly sanitise multi-byte characters used by that charset.', 'nfwplus'), 'https://en.wikipedia.org/wiki/GBK') . '</p>'
 	) );
 	get_current_screen()->add_help_tab( array(
 		'id'        => 'optlanguage',
@@ -150,7 +150,7 @@ function help_nfsubpolicies() {
 		'id'        => 'policies01',
 		'title'     => __('Policies overview', 'nfwplus'),
 		'content'   => '<br />' .
-			sprintf( __('Because NinjaFirewall sits in front of WordPress, it can hook, scan and sanitise all PHP requests, HTTP variables, headers and IPs before they reach your blog: <code><a href="%s">$_GET</a></code>, <code><a href="%s">$_POST</a></code>, <code><a href="%s">$_COOKIE</a></code>, <code><a href="%s">$_REQUEST</a></code>, <code><a href="%s">$_FILES</a></code>, <code><a href="%s">$_SERVER</a></code> in HTTP and/or HTTPS mode.', 'nfwplus'), 'http://www.php.net/manual/en/reserved.variables.get.php', 'http://www.php.net/manual/en/reserved.variables.post.php', 'http://www.php.net/manual/en/reserved.variables.cookies.php', 'http://www.php.net/manual/en/reserved.variables.request.php', 'http://www.php.net/manual/en/reserved.variables.files.php', 'http://php.net/manual/en/reserved.variables.server.php') .
+			sprintf( __('Because NinjaFirewall sits in front of WordPress, it can hook, scan and sanitise all PHP requests, HTTP variables, headers and IPs before they reach your blog: <code><a href="%s">$_GET</a></code>, <code><a href="%s">$_POST</a></code>, <code><a href="%s">$_COOKIE</a></code>, <code><a href="%s">$_REQUEST</a></code>, <code><a href="%s">$_FILES</a></code>, <code><a href="%s">$_SERVER</a></code> in HTTP and/or HTTPS mode.', 'nfwplus'), 'https://www.php.net/manual/en/reserved.variables.get.php', 'https://www.php.net/manual/en/reserved.variables.post.php', 'https://www.php.net/manual/en/reserved.variables.cookies.php', 'https://www.php.net/manual/en/reserved.variables.request.php', 'https://www.php.net/manual/en/reserved.variables.files.php', 'https://php.net/manual/en/reserved.variables.server.php') .
 			'<br />' .
 			__('Use the options below to enable, disable or to tweak these rules according to your needs.', 'nfwplus') .
 			'<br />' .
@@ -515,7 +515,7 @@ function help_nfsubfileguard() {
 			'<br />'.
 			__('Reports will be sent to the contact email address defined in the "Event Notifications" menu.', 'nfwplus'). '</p>'.
 
-			'<p><span class="dashicons dashicons-warning nfw-warning"></span>&nbsp;'. sprintf( __('Scheduled scans rely on <a href="%s">WordPress pseudo cron</a> which works only if your site gets sufficient traffic.', 'nfwplus'), 'http://codex.wordpress.org/Category:WP-Cron_Functions') . '</p>'
+			'<p><span class="dashicons dashicons-warning nfw-warning"></span>&nbsp;'. sprintf( __('Scheduled scans rely on <a href="%s">WordPress pseudo cron</a> which works only if your site gets sufficient traffic.', 'nfwplus'), 'https://codex.wordpress.org/Category:WP-Cron_Functions') . '</p>'
 	) );
 
 	// File Guard :

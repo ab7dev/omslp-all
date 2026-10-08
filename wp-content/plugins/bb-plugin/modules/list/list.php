@@ -118,7 +118,7 @@ class FLListModule extends FLBuilderModule {
 		}
 
 		if ( ! empty( $heading_tag ) ) {
-			$allowed_tags         = array(
+			$allowed_tags = array(
 				'a'      => array(
 					'href'   => true,
 					'title'  => true,
@@ -132,6 +132,9 @@ class FLListModule extends FLBuilderModule {
 				'sub'    => array(),
 				'span'   => array(),
 			);
+			/**
+			 * Array of allowed HTML tags for the list module heading field.
+			 */
 			$allowed_tags         = apply_filters( 'fl_list_heading_allowed_tags', $allowed_tags );
 			$wrapped_heading_text = '<span class="fl-list-item-heading-text">' . wp_kses( $heading_text, $allowed_tags ) . '</span>';
 
@@ -260,10 +263,12 @@ FLBuilder::register_module(
 							'help'    => __( 'Select an icon for the Ordered List (ol).', 'fl-builder' ),
 						),
 						'div_icon'            => array(
-							'type'        => 'icon',
-							'label'       => __( 'List Icon', 'fl-builder' ),
-							'show_remove' => true,
-							'help'        => __( 'Generic List icon. You can override this in the individual List Item icon.', 'fl-builder' ),
+							'type'               => 'icon',
+							'label'              => __( 'List Icon', 'fl-builder' ),
+							'show_remove'        => true,
+							'show_extra_classes' => true,
+							'connections'        => array( 'icon' ),
+							'help'               => __( 'Generic List icon. You can override this in the individual List Item icon.', 'fl-builder' ),
 						),
 						'list_icon_placement' => array(
 							'type'    => 'select',
@@ -366,6 +371,7 @@ FLBuilder::register_module(
 							'connections' => array( 'color' ),
 							'show_reset'  => true,
 							'show_alpha'  => true,
+							'responsive'  => true,
 							'preview'     => array(
 								'type' => 'refresh',
 							),
@@ -426,29 +432,31 @@ FLBuilder::register_module(
 							'label'       => __( 'List Icon Color', 'fl-builder' ),
 							'show_reset'  => true,
 							'show_alpha'  => true,
+							'responsive'  => true,
 							'preview'     => array(
 								'type' => 'refresh',
 							),
 						),
 						'icon_size'       => array(
-							'type'      => 'unit',
-							'label'     => __( 'Icon Size', 'fl-builder' ),
-							'default'   => '10',
-							'maxlength' => '2',
-							'size'      => '3',
-							'sanitize'  => 'absint',
-							'slider'    => true,
-							'units'     => array(
+							'type'       => 'unit',
+							'label'      => __( 'Icon Size', 'fl-builder' ),
+							'default'    => '10',
+							'maxlength'  => '2',
+							'size'       => '3',
+							'sanitize'   => 'absint',
+							'slider'     => true,
+							'responsive' => true,
+							'units'      => array(
 								'px',
 							),
-							'slider'    => array(
+							'slider'     => array(
 								'px' => array(
 									'min'  => 10,
 									'max'  => 100,
 									'step' => 1,
 								),
 							),
-							'preview'   => array(
+							'preview'    => array(
 								'type'      => 'css',
 								'selector'  => '{node}.fl-module-list .fl-list-item-icon',
 								'property'  => 'font-size',
@@ -462,6 +470,7 @@ FLBuilder::register_module(
 							'size'         => '5',
 							'sanitize'     => 'absint',
 							'slider'       => true,
+							'responsive'   => true,
 							'units'        => array(
 								'px',
 							),
@@ -507,6 +516,7 @@ FLBuilder::register_module(
 							'label'       => __( 'Heading Color', 'fl-builder' ),
 							'show_reset'  => true,
 							'show_alpha'  => true,
+							'responsive'  => true,
 							'preview'     => array(
 								'type' => 'refresh',
 							),
@@ -533,6 +543,7 @@ FLBuilder::register_module(
 							'label'       => __( 'Content Color', 'fl-builder' ),
 							'show_reset'  => true,
 							'show_alpha'  => true,
+							'responsive'  => true,
 							'preview'     => array(
 								'type' => 'refresh',
 							),
@@ -554,17 +565,18 @@ FLBuilder::register_module(
 					'collapsed' => true,
 					'fields'    => array(
 						'separator_style' => array(
-							'type'    => 'select',
-							'label'   => __( 'Line Separator Style', 'fl-builder' ),
-							'default' => 'none',
-							'options' => array(
+							'type'       => 'select',
+							'label'      => __( 'Line Separator Style', 'fl-builder' ),
+							'default'    => 'none',
+							'responsive' => true,
+							'options'    => array(
 								'none'   => __( 'None (No Separator)', 'fl-builder' ),
 								'solid'  => __( 'Solid', 'fl-builder' ),
 								'dashed' => __( 'Dashed', 'fl-builder' ),
 								'dotted' => __( 'Dotted', 'fl-builder' ),
 								'double' => __( 'Double', 'fl-builder' ),
 							),
-							'preview' => array(
+							'preview'    => array(
 								'type'      => 'css',
 								'selector'  => '{node}.fl-module-list .fl-list-item ~ .fl-list-item',
 								'property'  => 'border-top-style',
@@ -577,6 +589,7 @@ FLBuilder::register_module(
 							'label'       => __( 'Line Color', 'fl-builder' ),
 							'show_reset'  => true,
 							'show_alpha'  => true,
+							'responsive'  => true,
 							'preview'     => array(
 								'type'     => 'css',
 								'selector' => '{node}.fl-module-list .fl-list-item ~ .fl-list-item',
@@ -634,6 +647,7 @@ FLBuilder::register_settings_form(
 								'type'        => 'icon',
 								'label'       => __( 'Icon', 'fl-builder' ),
 								'show_remove' => true,
+								'connections' => array( 'icon' ),
 								'help'        => __( 'Overrides the Icon applied to the module settings.', 'fl-builder' ),
 							),
 						),
@@ -671,6 +685,7 @@ FLBuilder::register_settings_form(
 								'label'       => __( 'Heading Text Color', 'fl-builder' ),
 								'show_reset'  => true,
 								'show_alpha'  => true,
+								'responsive'  => true,
 							),
 							'content_text_color' => array(
 								'type'        => 'color',
@@ -678,6 +693,7 @@ FLBuilder::register_settings_form(
 								'label'       => __( 'Content Text Color', 'fl-builder' ),
 								'show_reset'  => true,
 								'show_alpha'  => true,
+								'responsive'  => true,
 							),
 							'bg_color'           => array(
 								'type'        => 'color',
@@ -685,6 +701,7 @@ FLBuilder::register_settings_form(
 								'label'       => __( 'Background Color', 'fl-builder' ),
 								'show_reset'  => true,
 								'show_alpha'  => true,
+								'responsive'  => true,
 							),
 							'icon_color'         => array(
 								'type'        => 'color',
@@ -692,6 +709,7 @@ FLBuilder::register_settings_form(
 								'label'       => __( 'Icon Color', 'fl-builder' ),
 								'show_reset'  => true,
 								'show_alpha'  => true,
+								'responsive'  => true,
 							),
 							'list_item_padding'  => array(
 								'type'       => 'dimension',

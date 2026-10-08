@@ -1,5 +1,8 @@
 <?php
 global $post;
+/**
+ * Array of field name mappings for the contact form before rendering.
+ */
 $contact_form_fields = apply_filters( 'fl_builder_contact_form_fields', array(
 	'form_name'        => 'fl-name',
 	'form_subject'     => 'fl-subject',

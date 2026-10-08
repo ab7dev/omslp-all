@@ -67,6 +67,8 @@ final class FLPageData {
 		add_action( 'wp', __CLASS__ . '::init_properties', 1 );
 	}
 
+	static private $id_form = [];
+
 	/**
 	 * Initialize default values for internal vars.
 	 *
@@ -76,39 +78,39 @@ final class FLPageData {
 	static public function init_defaults() {
 		self::$groups = array(
 			'general'  => array(
-				'label'  => FLBuilderUtils::__( 'General', 'fl-builder' ),
+				'label'  => __( 'General', 'fl-builder' ),
 				'render' => true,
 			),
 			'archives' => array(
-				'label'  => FLBuilderUtils::__( 'Archives', 'fl-builder' ),
+				'label'  => __( 'Archives', 'fl-builder' ),
 				'render' => true,
 			),
 			'posts'    => array(
-				'label'  => FLBuilderUtils::__( 'Posts', 'fl-builder' ),
+				'label'  => __( 'Posts', 'fl-builder' ),
 				'render' => true,
 			),
 			'comments' => array(
-				'label'  => FLBuilderUtils::__( 'Comments', 'fl-builder' ),
+				'label'  => __( 'Comments', 'fl-builder' ),
 				'render' => true,
 			),
 			'author'   => array(
-				'label'  => FLBuilderUtils::__( 'Author', 'fl-builder' ),
+				'label'  => __( 'Author', 'fl-builder' ),
 				'render' => true,
 			),
 			'site'     => array(
-				'label'  => FLBuilderUtils::__( 'Site', 'fl-builder' ),
+				'label'  => __( 'Site', 'fl-builder' ),
 				'render' => true,
 			),
 			'user'     => array(
-				'label'  => FLBuilderUtils::__( 'User', 'fl-builder' ),
+				'label'  => __( 'User', 'fl-builder' ),
 				'render' => true,
 			),
 			'advanced' => array(
-				'label'  => FLBuilderUtils::__( 'Advanced', 'fl-builder' ),
+				'label'  => __( 'Advanced', 'fl-builder' ),
 				'render' => true,
 			),
 			'term'     => array(
-				'label'  => FLBuilderUtils::__( 'Term', 'fl-builder' ),
+				'label'  => __( 'Term', 'fl-builder' ),
 				'render' => true,
 			),
 		);
@@ -124,6 +126,13 @@ final class FLPageData {
 			'post'    => array(),
 			'site'    => array(),
 		);
+
+		self::$id_form = array(
+			'type'        => 'text',
+			'label'       => __( 'ID', 'fl-builder' ),
+			'default'     => '',
+			'description' => __( 'Which Post ID will the system use for this data connection? Leave Blank to use the current page/post', 'fl-builder' ),
+		);
 	}
 
 	/**
@@ -134,6 +143,9 @@ final class FLPageData {
 	 */
 	static public function init_properties() {
 		// Let devs hook into page data
+		/**
+		 * Fires to allow registering custom page data properties for dynamic content fields.
+		 */
 		do_action( 'fl_page_data_add_properties' );
 	}
 
@@ -192,6 +204,11 @@ final class FLPageData {
 		), $data );
 
 		self::add_property( 'post', $key, $data );
+
+		/**
+		 * Auto insert 'post_id' setting (#3452)
+		 */
+		// self::add_post_property_settings_fields( $key, [ 'post_id' => self::$id_form ] );
 	}
 
 	/**
@@ -279,11 +296,17 @@ final class FLPageData {
 	 * @return mixed
 	 */
 	static public function get_value( $object, $key, $settings = null ) {
-		$property = self::get_property( $object, $key );
+		global $post;
+		$original_post = $post;
+		$property      = self::get_property( $object, $key );
 
 		// Property or getter doesn't exist, return an empty string.
 		if ( ! $property || ! is_callable( $property['getter'] ) ) {
 			return '';
+		}
+
+		if ( isset( $settings->post_id ) ) {
+			$post = get_post( $settings->post_id );
 		}
 
 		// Get the value.
@@ -300,6 +323,8 @@ final class FLPageData {
 
 		// Cache the value.
 		self::$values[ $object ][ $key ] = $value;
+
+		$post = $original_post;
 
 		// Return the value after running it through the expression function
 		return FLThemeBuilderFieldConnections::general_compare( $settings, $value );
@@ -415,6 +440,16 @@ final class FLPageData {
 			'css' => isset( $data['tabs'] ) && isset( $data['css'] ) ? $data['css'] : null,
 			'js'  => isset( $data['tabs'] ) && isset( $data['js'] ) ? $data['js'] : null,
 		);
+		/**
+		 * Auto insert 'post_id' setting (#3452)
+		 */
+		// if ( 'post' === $object ) {
+		//  if ( is_array( $form['tabs']['general']['sections']['general']['fields'] ) ) {
+		//      $form['tabs']['general']['sections']['general']['fields']['post_id'] = self::$id_form;
+		//  } else {
+		//      $form['tabs']['general']['sections']['general']['fields'] = [ 'post_id' => self::$id_form ];
+		//  }
+		// }
 
 		FLBuilderModel::register_settings_form( $form_id, $form );
 	}

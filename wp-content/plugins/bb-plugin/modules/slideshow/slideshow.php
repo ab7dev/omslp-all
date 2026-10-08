@@ -395,15 +395,16 @@ FLBuilder::register_module('FLSlideshowModule', array(
 				'title'  => __( 'Display', 'fl-builder' ),
 				'fields' => array(
 					'height'  => array(
-						'type'     => 'unit',
-						'label'    => __( 'Height', 'fl-builder' ),
-						'default'  => '500',
-						'sanitize' => 'absint',
-						'units'    => array( 'px' ),
-						'slider'   => array(
+						'type'       => 'unit',
+						'label'      => __( 'Height', 'fl-builder' ),
+						'default'    => '500',
+						'sanitize'   => 'absint',
+						'units'      => array( 'px' ),
+						'slider'     => array(
 							'step' => 10,
 							'max'  => 1000,
 						),
+						'responsive' => true,
 					),
 					'color'   => array(
 						'type'    => 'select',
@@ -722,7 +723,7 @@ FLBuilder::register_module('FLSlideshowModule', array(
 					),
 					'twitter'   => array(
 						'type'    => 'select',
-						'label'   => __( 'Twitter Button', 'fl-builder' ),
+						'label'   => __( 'X Button', 'fl-builder' ),
 						'default' => 'true',
 						'options' => array(
 							'false' => __( 'No', 'fl-builder' ),

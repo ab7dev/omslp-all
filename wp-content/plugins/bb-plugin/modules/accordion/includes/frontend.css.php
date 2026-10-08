@@ -85,7 +85,6 @@ FLBuilderCSS::typography_field_rule( array(
 // Content Text Color
 FLBuilderCSS::rule( array(
 	'selector' => ".fl-node-$id .fl-accordion .fl-accordion-content :where( p, span, li )",
-	'enabled'  => 'content' === $settings->source,
 	'props'    => array(
 		'color' => $settings->content_text_color,
 	),

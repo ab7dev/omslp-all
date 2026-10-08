@@ -171,6 +171,28 @@ final class FLBuilderModel {
 
 	static private $categorized_child_nodes_cache = array();
 
+	static private $categorized_nodes_cache = array();
+
+	/**
+	 * Per-request cache for get_node_settings() results, keyed by node ID + filter flag.
+	 * Cleared by update_layout_data() on every layout write.
+	 *
+	 * @since 2.9
+	 * @access private
+	 * @var array
+	 */
+	static private $node_settings_cache = array();
+
+	/**
+	 * Per-request cache for get_admin_settings_option() results.
+	 * Cleared by update_admin_settings_option() when a value changes.
+	 *
+	 * @since 2.9
+	 * @access private
+	 * @var array
+	 */
+	static private $admin_settings_option_cache = array();
+
 	/**
 	 * Initialize hooks.
 	 *
@@ -286,6 +308,9 @@ final class FLBuilderModel {
 	 */
 	static public function get_store_url( $path = '', $params = array() ) {
 		$url = add_query_arg( $params, FL_BUILDER_STORE_URL . $path );
+		/**
+		 * Store URL with path and query string parameters appended.
+		 */
 		return apply_filters( 'fl_builder_store_url', $url, $path );
 	}
 
@@ -321,15 +346,24 @@ final class FLBuilderModel {
 			if ( isset( $_POST['fl_builder_data'] ) ) {
 
 				// Decode settings if our ModSecurity fix is enabled.
-				if ( isset( $_POST['fl_builder_data']['settings'] ) ) {
-					$_POST['fl_builder_data']['settings'] = FLBuilderUtils::modsec_fix_decode( $_POST['fl_builder_data']['settings'] );
-				}
-				if ( isset( $_POST['fl_builder_data']['node_settings'] ) ) {
-					$_POST['fl_builder_data']['node_settings'] = FLBuilderUtils::modsec_fix_decode( $_POST['fl_builder_data']['node_settings'] );
+				foreach ( array( 'settings', 'node_settings', 'node_preview', 'global_settings', 'data' ) as $_key ) {
+					if ( isset( $_POST['fl_builder_data'][ $_key ] ) ) {
+						$_POST['fl_builder_data'][ $_key ] = FLBuilderUtils::modsec_fix_decode( $_POST['fl_builder_data'][ $_key ] );
+					}
 				}
 
-				if ( isset( $_POST['fl_builder_data']['node_preview'] ) ) {
-					$_POST['fl_builder_data']['node_preview'] = FLBuilderUtils::modsec_fix_decode( $_POST['fl_builder_data']['node_preview'] );
+				// Settings may be JSON-encoded as a single string to avoid max_input_vars limits.
+				// Decode explicitly as associative arrays to match the type expected downstream.
+				// Re-slash decoded values so the wp_unslash in json_decode_deep is a no-op
+				// for them — otherwise nested JSON strings (like ds_block_data) get their
+				// backslash escapes stripped a second time, corrupting the JSON.
+				foreach ( array( 'settings', 'node_settings', 'node_preview', 'global_settings', 'data' ) as $key ) {
+					if ( isset( $_POST['fl_builder_data'][ $key ] ) && is_string( $_POST['fl_builder_data'][ $key ] ) ) {
+						$decoded = json_decode( wp_unslash( $_POST['fl_builder_data'][ $key ] ), true );
+						if ( null !== $decoded ) {
+							$_POST['fl_builder_data'][ $key ] = wp_slash( $decoded );
+						}
+					}
 				}
 
 				$data = FLBuilderUtils::json_decode_deep( wp_unslash( $_POST['fl_builder_data'] ) );
@@ -745,6 +779,9 @@ final class FLBuilderModel {
 		$post_id  = ( isset( $post->ID ) ) ? $post->ID : false;
 
 		if ( null !== self::$active ) {
+			/**
+			 * Whether the builder is currently active (early return path when already cached).
+			 */
 			return apply_filters( 'fl_builder_model_is_builder_active', self::$active );
 		} elseif ( ! is_admin() && is_singular() && $query_id != $post_id ) {
 			self::$active = false;
@@ -754,6 +791,9 @@ final class FLBuilderModel {
 			$post_data    = self::get_post_data();
 			self::$active = isset( $_GET['fl_builder'] ) || isset( $post_data['fl_builder'] );
 		}
+		/**
+		 * Whether the builder is currently active for the current page request.
+		 */
 		return apply_filters( 'fl_builder_model_is_builder_active', self::$active );
 	}
 
@@ -855,6 +895,12 @@ final class FLBuilderModel {
 		global $wp_the_query;
 
 		if ( self::is_post_editable() && is_object( $wp_the_query->post ) ) {
+
+			/**
+			 * Allow devs to hook into before editing is enabled.
+			 * @see fl_builder_pre_editing_enabled
+			 */
+			do_action( 'fl_builder_pre_editing_enabled' );
 
 			$post      = $wp_the_query->post;
 			$published = self::get_layout_data( 'published' );
@@ -1264,11 +1310,9 @@ final class FLBuilderModel {
 
 			// Return nodes of a certain type.
 			foreach ( $data as $node_id => $node ) {
-				if ( ! $parent && ! $node->parent && 'row' === $type && 'module' === $node->type ) {
-					// Handle container modules in the main layout as rows.
-					if ( isset( self::$modules[ $node->settings->type ] ) && is_object( self::$modules[ $node->settings->type ] ) && self::$modules[ $node->settings->type ]->accepts_children() ) {
-						$nodes[ $node_id ] = $node;
-					}
+				if ( ! $parent && 'row' === $type && 'module' === $node->type && self::is_root_position_node( $node ) ) {
+					// Handle top-level modules (containers and top_level-flagged) in the main layout as rows.
+					$nodes[ $node_id ] = $node;
 				} elseif ( $node->type === $type ) {
 					// Handle child nodes of a certain type.
 					$nodes[ $node_id ] = $node;
@@ -1434,6 +1478,9 @@ final class FLBuilderModel {
 		$nodes            = array();
 
 		if ( $template_post_id ) {
+			/**
+			 * Template node ID used to match child nodes when inserting a global template.
+			 */
 			$template_node_id = apply_filters( 'fl_builder_parent_template_node_id', $parent->template_node_id, $parent, $data );
 		}
 
@@ -1495,6 +1542,14 @@ final class FLBuilderModel {
 	 * @return array
 	 */
 	static public function get_categorized_nodes() {
+		$post_id = self::get_post_id();
+		$status  = self::get_node_status();
+		$key     = $post_id . '_' . $status;
+
+		if ( isset( self::$categorized_nodes_cache[ $key ] ) ) {
+			return self::$categorized_nodes_cache[ $key ];
+		}
+
 		if ( self::is_post_user_template( 'column' ) ) {
 			$root_col                            = self::get_node_template_root( 'column' );
 			$nodes                               = self::get_categorized_child_nodes( $root_col );
@@ -1502,6 +1557,8 @@ final class FLBuilderModel {
 		} else {
 			$nodes = self::get_categorized_child_nodes();
 		}
+
+		self::$categorized_nodes_cache[ $key ] = $nodes;
 
 		return $nodes;
 	}
@@ -1546,8 +1603,8 @@ final class FLBuilderModel {
 			if ( 'module' !== $node->type ) {
 				$accepts_children = true;
 			} else {
-				$module           = self::get_module( $node );
-				$accepts_children = $module && $module->accepts_children();
+				// $module was already set in the case 'module' branch above; reuse it.
+				$accepts_children = isset( $module ) && $module && $module->accepts_children();
 			}
 
 			if ( $accepts_children && self::is_node_global( $node ) ) {
@@ -1587,14 +1644,72 @@ final class FLBuilderModel {
 		$post_data         = self::get_post_data();
 		$is_dynamic_global = isset( $node->settings->dynamic_node_settings );
 
+		// Check if we have a node preview ID. This is used to preview
+		// node settings before they are saved. The `node_preview` key will
+		// contain the settings, while either `node_preview_id` or `node_id`
+		// will point to the node that should use the preview settings.
+		// Preview results are never stored in the per-node settings cache
+		// because they are transient per-request state.
+		$node_preview_id = null;
+		if ( isset( $post_data['node_preview'] ) ) {
+			$node_preview_id = isset( $post_data['node_preview_id'] ) ? $post_data['node_preview_id'] : ( $post_data['node_id'] ?? null );
+		}
+		$is_preview = $node_preview_id && $node_preview_id == $node->node;
+
+		// Node preview is only ever sent by the builder's own live preview
+		// request (action `render_layout`), which already requires a
+		// logged in user with edit_post capability on the target post
+		// before reaching this point (see FLBuilderAJAX::call_action()).
+		// Re-check the same guarantee here so any other caller that
+		// resolves node settings (e.g. a module's own front-end ajax
+		// action) can't honor an attacker-supplied node_preview override.
+		if ( $is_preview && ( ! is_user_logged_in() || ! current_user_can( 'edit_post', self::get_post_id() ) ) ) {
+			$is_preview = false;
+		}
+
+		// Return a clone of the cached result when available.
+		// When $filter is true, include the current post ID in the key because
+		// the fl_builder_node_settings filter (e.g. field connections) resolves
+		// dynamic values against the current post context — loop iterations must
+		// not share a cache entry with each other or with the parent page.
+		// Also include ACF row / BB term context: ACF's the_row() and the BB
+		// term loop don't update the global $post, so get_the_ID() alone would
+		// collide every iteration into the same cache slot.
+		$context_suffix = '';
+		if ( $filter ) {
+			if ( function_exists( 'acf_get_loop' ) && acf_get_loop( 'active' ) ) {
+				$context_suffix = '_acfrow_' . get_row_index();
+			} elseif ( ! empty( $GLOBALS['fl_term_query'] ) && ! empty( $GLOBALS['fl_term']->term_id ) ) {
+				$context_suffix = '_term_' . $GLOBALS['fl_term']->term_id;
+			}
+		}
+		$cache_key = $node->node . '_' . ( $filter ? '1_' . get_the_ID() . $context_suffix : '0' );
+
+		/**
+		 * Filter the per-node settings cache key. Plugins that introduce their own
+		 * post-context loops (custom listing modules, WooCommerce variations, etc.)
+		 * can append a discriminator here so each iteration gets its own cache entry
+		 * instead of colliding on the parent page's ID.
+		 *
+		 * @since 2.10.2.2
+		 * @param string $cache_key The computed cache key.
+		 * @param object $node      The node being resolved.
+		 * @param bool   $filter    Whether the fl_builder_node_settings filter will run.
+		 */
+		$cache_key = apply_filters( 'fl_builder_node_settings_cache_key', $cache_key, $node, $filter );
+
+		if ( ! $is_preview && isset( self::$node_settings_cache[ $cache_key ] ) ) {
+			return clone self::$node_settings_cache[ $cache_key ];
+		}
+
 		// Get the node settings for a node template's root node?
 		if ( ! $is_dynamic_global && self::is_node_template_root( $node ) && ! self::is_post_node_template( false, $node->type ) ) {
 			$template_post_id = self::get_node_template_post_id( $node->template_id );
-			$template_data    = self::get_layout_data( 'published', $template_post_id );
+			$template_data    = self::get_layout_data( 'published', $template_post_id, false ); // read-only: settings are explicitly cloned below.
 
 			// Fallback to draft data if we don't have published data.
 			if ( ! isset( $template_data[ $node->template_node_id ] ) ) {
-				$template_data = self::get_layout_data( 'draft', $template_post_id );
+				$template_data = self::get_layout_data( 'draft', $template_post_id, false ); // read-only: same.
 			}
 
 			// Set the node settings to the template node settings.
@@ -1614,25 +1729,15 @@ final class FLBuilderModel {
 			}
 		}
 
-		// Check if we have a node preview ID. This is used to preview
-		// node settings before they are saved. The `node_preview` key will
-		// contain the settings, while either `node_preview_id` or `node_id`
-		// will point to the node that should use the preview settings.
-		$node_preview_id = null;
-
-		if ( isset( $post_data['node_preview'] ) ) {
-			if ( isset( $post_data['node_preview_id'] ) ) {
-				$node_preview_id = $post_data['node_preview_id'];
-			} elseif ( isset( $post_data['node_id'] ) ) {
-				$node_preview_id = $post_data['node_id'];
-			}
-		}
-
 		// Get either the preview settings or saved node settings merged with the defaults.
-		if ( $node_preview_id && $node_preview_id == $node->node ) {
+		if ( $is_preview ) {
 
 			if ( ! isset( $post_data['node_preview_processed_settings'] ) ) {
 				$settings = $post_data['node_preview'];
+
+				// Preview settings are client-supplied and rendered as-is, so
+				// gate JS code fields the same way the save path does.
+				$settings = (array) self::strip_client_js_code_overrides( (object) $settings, isset( $node->settings->type ) ? $node->settings->type : '', $node->settings );
 
 				if ( isset( $settings['dynamic_node_settings'] ) ) {
 					$settings = FLBuilderDynamicGlobal::merge_settings_for_save( $node, (object) $settings );
@@ -1659,8 +1764,16 @@ final class FLBuilderModel {
 		) {
 			$settings = self::process_row_settings( $node, $settings );
 		}
+		/**
+		 * Settings object for a node, with defaults merged and dynamic global values applied.
+		 */
+		$result = ! $filter ? $settings : apply_filters( 'fl_builder_node_settings', $settings, $node );
 
-		return ! $filter ? $settings : apply_filters( 'fl_builder_node_settings', $settings, $node );
+		if ( ! $is_preview ) {
+			self::$node_settings_cache[ $cache_key ] = $result;
+		}
+
+		return $result;
 	}
 
 	/**
@@ -1844,6 +1957,97 @@ final class FLBuilderModel {
 	}
 
 	/**
+	 * Checks whether a node occupies the layout root for positioning
+	 * purposes. Rows always do. Top-level modules (containers and
+	 * top_level-flagged modules such as popups, or "box" pre-built
+	 * module templates) have no parent and are rendered alongside rows,
+	 * so they share the same root position space. Anything that returns
+	 * true here must be repositioned together when appending or
+	 * prepending a template.
+	 *
+	 * @since 2.11
+	 * @param object $node A layout node.
+	 * @return bool
+	 */
+	static public function is_root_position_node( $node ) {
+		if ( 'row' == $node->type && empty( $node->parent ) ) {
+			return true;
+		}
+
+		if ( 'module' == $node->type && empty( $node->parent )
+			&& isset( $node->settings->type )
+			&& isset( self::$modules[ $node->settings->type ] )
+			&& is_object( self::$modules[ $node->settings->type ] )
+			&& self::$modules[ $node->settings->type ]->can_be_top_level() ) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Repositions layout data so a template is prepended to the layout.
+	 *
+	 * The template's root nodes (rows and top-level modules) are
+	 * normalized to a contiguous 0..N-1 range in their current order, and
+	 * the existing layout's root nodes are shifted down past them. Both
+	 * row and top-level-module positions are handled so popups and "box"
+	 * module templates are prepended correctly instead of being left
+	 * behind. Normalizing also removes any dependency on the positions a
+	 * saved template happens to carry.
+	 *
+	 * @since 2.11
+	 * @param array $template_nodes The template nodes, modified by reference.
+	 * @param array $layout_data The existing layout nodes, modified by reference.
+	 * @return void
+	 */
+	static private function prepend_template_nodes( &$template_nodes, &$layout_data ) {
+		// Collect the template's root nodes ordered by their current position.
+		$template_root = array();
+		foreach ( $template_nodes as $node_id => $node ) {
+			if ( self::is_root_position_node( $node ) ) {
+				$template_root[ $node_id ] = (int) $node->position;
+			}
+		}
+		asort( $template_root );
+
+		// Normalize them to 0..N-1 so the template always lands at the top.
+		$position = 0;
+		foreach ( array_keys( $template_root ) as $node_id ) {
+			$template_nodes[ $node_id ]->position = $position++;
+		}
+
+		// Shift existing root nodes down past the template's root nodes.
+		$template_root_count = count( $template_root );
+		foreach ( $layout_data as $node_id => $node ) {
+			if ( self::is_root_position_node( $node ) ) {
+				$layout_data[ $node_id ]->position += $template_root_count;
+			}
+		}
+	}
+
+	/**
+	 * Repositions a template's root nodes so the template is appended
+	 * below the existing layout. Both row and top-level-module positions
+	 * are shifted past the existing root nodes so an appended popup or
+	 * "box" module template lands at the bottom instead of colliding with
+	 * the existing layout.
+	 *
+	 * @since 2.11
+	 * @param array $template_nodes The template nodes, modified by reference.
+	 * @return void
+	 */
+	static private function append_template_nodes( &$template_nodes ) {
+		$row_position = self::next_node_position( 'row' );
+
+		foreach ( $template_nodes as $node_id => $node ) {
+			if ( self::is_root_position_node( $node ) ) {
+				$template_nodes[ $node_id ]->position += $row_position;
+			}
+		}
+	}
+
+	/**
 	 * Counts the number of nodes in a parent.
 	 *
 	 * @since 1.0
@@ -1954,8 +2158,7 @@ final class FLBuilderModel {
 	 */
 	static public function call_module_delete( $node ) {
 		if ( 'module' == $node->type && isset( self::$modules[ $node->settings->type ] ) ) {
-			$class              = get_class( self::$modules[ $node->settings->type ] );
-			$instance           = new $class();
+			$instance           = self::create_module_instance( $node->settings->type );
 			$instance->node     = $node->node;
 			$instance->parent   = $node->parent;
 			$instance->settings = $node->settings;
@@ -2232,8 +2435,10 @@ final class FLBuilderModel {
 		// Apply settings that were passed if we have them.
 		if ( $settings && $settings_id ) {
 			if ( $settings_id === $row->node ) {
+				$settings                             = self::strip_client_js_code_overrides( (object) $settings, isset( $row->settings->type ) ? $row->settings->type : '', $row->settings );
 				$layout_data[ $new_row_id ]->settings = (object) array_merge( (array) $row->settings, (array) $settings );
 			} elseif ( isset( $new_nodes[ $settings_id ] ) ) {
+				$settings                            = self::strip_client_js_code_overrides( (object) $settings, isset( $new_nodes[ $settings_id ]->settings->type ) ? $new_nodes[ $settings_id ]->settings->type : '', $new_nodes[ $settings_id ]->settings );
 				$new_nodes[ $settings_id ]->settings = (object) array_merge( (array) $new_nodes[ $settings_id ]->settings, (array) $settings );
 			}
 		}
@@ -3132,8 +3337,10 @@ final class FLBuilderModel {
 		// Apply settings that were passed if we have them.
 		if ( $settings && $settings_id ) {
 			if ( $settings_id === $col->node ) {
+				$settings                             = self::strip_client_js_code_overrides( (object) $settings, isset( $col->settings->type ) ? $col->settings->type : '', $col->settings );
 				$layout_data[ $new_col_id ]->settings = (object) array_merge( (array) $col->settings, (array) $settings );
 			} elseif ( isset( $new_nodes[ $settings_id ] ) ) {
+				$settings                            = self::strip_client_js_code_overrides( (object) $settings, isset( $new_nodes[ $settings_id ]->settings->type ) ? $new_nodes[ $settings_id ]->settings->type : '', $new_nodes[ $settings_id ]->settings );
 				$new_nodes[ $settings_id ]->settings = (object) array_merge( (array) $new_nodes[ $settings_id ]->settings, (array) $settings );
 			}
 		}
@@ -3248,12 +3455,14 @@ final class FLBuilderModel {
 	 * @return void
 	 */
 	static public function register_module( $class, $form ) {
-		if ( ! class_exists( $class ) ) {
-			return;
+		if ( is_object( $class ) ) {
+			$instance = $class;
+		} else {
+			if ( ! class_exists( $class ) ) {
+				return;
+			}
+			$instance = new $class();
 		}
-
-		// Create a new instance of the module.
-		$instance = new $class();
 
 		// Log an error if a module with this slug already exists.
 		if ( isset( self::$modules[ $instance->slug ] ) ) {
@@ -3270,7 +3479,10 @@ final class FLBuilderModel {
 		$instance->enabled = apply_filters( 'fl_builder_register_module', $instance->enabled, $instance );
 
 		// Save the instance in the modules array.
-		self::$modules[ $instance->slug ]       = $instance;
+		self::$modules[ $instance->slug ] = $instance;
+		/**
+		 * Settings form config array when registered for a module via register_module.
+		 */
 		self::$modules[ $instance->slug ]->form = apply_filters( 'fl_builder_register_settings_form', $form, $instance->slug );
 
 		// Allow auto_style tab
@@ -3414,7 +3626,8 @@ final class FLBuilderModel {
 
 		// Merge form settings passed from the frontend
 		if ( $form_settings ) {
-			$settings = (object) array_merge( (array) $settings, $form_settings );
+			$form_settings = (array) self::strip_client_js_code_overrides( (object) $form_settings, isset( $settings->type ) ? $settings->type : '', $settings );
+			$settings      = (object) array_merge( (array) $settings, $form_settings );
 		}
 
 		// Merge alias settings
@@ -3753,6 +3966,80 @@ final class FLBuilderModel {
 	}
 
 	/**
+	 * Returns modules registered with enabled => false. These are picker-hidden
+	 * by intent (e.g., reusable-block, acf-block, ds-block) but are still fully
+	 * registered with the builder and have valid render/form/save paths.
+	 *
+	 * Same projection shape as items in get_uncategorized_modules() so JS
+	 * consumers asking the registry-membership question can use one as a
+	 * fallback for the other when looking up registered module configuration.
+	 *
+	 * Aliases and widgets are intentionally excluded — aliases of disabled
+	 * parents already appear in get_uncategorized_modules(), and widgets are
+	 * surfaced via the discriminator pattern (settings.widget_title).
+	 *
+	 * @since 2.11
+	 * @return array
+	 */
+	static public function get_unlisted_modules() {
+		$modules = array();
+
+		foreach ( self::$modules as $module ) {
+
+			if ( $module->enabled ) {
+				continue;
+			} elseif ( 'widget' === $module->slug ) {
+				continue;
+			}
+
+			$module           = clone $module;
+			$module->kind     = 'module';
+			$module->isWidget = false; // @codingStandardsIgnoreLine
+			$module->isAlias  = false; // @codingStandardsIgnoreLine
+			$module->group    = $module->group ? array( sanitize_key( $module->group ) ) : array( 'standard' );
+
+			if ( ! isset( $module->icon ) || '' == $module->icon ) {
+				$module->icon = FLBuilderModule::get_default_icon();
+			}
+
+			// Remove backend-only & instance properties.
+			// Keep this list in sync with get_uncategorized_modules() so the
+			// projection shape stays identical for JS consumers.
+			unset( $module->css );
+			unset( $module->js );
+			unset( $module->editor_export );
+			unset( $module->node );
+			unset( $module->parent );
+			unset( $module->partial_refresh );
+			unset( $module->position );
+			unset( $module->settings );
+			unset( $module->form );
+			unset( $module->dir );
+
+			$modules[] = $module;
+		}
+
+		return $modules;
+	}
+
+	/**
+	 * Creates a module instance for a registered module type.
+	 * Uses clone for modules with clone_instance flag (dynamic modules),
+	 * falls back to new $class() for traditional PHP-class modules.
+	 *
+	 * @param string $type The module type slug.
+	 * @return FLBuilderModule
+	 */
+	static public function create_module_instance( $type ) {
+		$module = self::$modules[ $type ];
+		if ( ! empty( $module->clone_instance ) ) {
+			return clone $module;
+		}
+		$class = get_class( $module );
+		return new $class();
+	}
+
+	/**
 	 * Returns an instance of a module.
 	 *
 	 * @since 1.0
@@ -3764,8 +4051,7 @@ final class FLBuilderModel {
 
 		if ( isset( $module->settings->type ) && self::is_module_registered( $module->settings->type ) ) {
 
-			$class              = get_class( self::$modules[ $module->settings->type ] );
-			$instance           = new $class();
+			$instance           = self::create_module_instance( $module->settings->type );
 			$instance->node     = $module->node;
 			$instance->parent   = $module->parent;
 			$instance->position = $module->position;
@@ -3811,8 +4097,7 @@ final class FLBuilderModel {
 
 			if ( self::is_module_registered( $module->settings->type ) ) {
 
-				$class                     = get_class( self::$modules[ $module->settings->type ] );
-				$instances[ $i ]           = new $class();
+				$instances[ $i ]           = self::create_module_instance( $module->settings->type );
 				$instances[ $i ]->node     = $module->node;
 				$instances[ $i ]->parent   = $module->parent;
 				$instances[ $i ]->position = $module->position;
@@ -3868,8 +4153,7 @@ final class FLBuilderModel {
 		}
 
 		// Run module update method.
-		$class              = get_class( self::$modules[ $type ] );
-		$instance           = new $class();
+		$instance           = self::create_module_instance( $type );
 		$instance->node     = $module_node_id;
 		$instance->settings = $settings;
 		$settings           = $instance->update( $settings );
@@ -3931,9 +4215,10 @@ final class FLBuilderModel {
 		}
 
 		if ( ! $parent ) {
-			// Add a new row if we don't have a parent. Container modules don't
-			// get a parent as they can go in the main layout as of 2.9.
-			if ( ! $module->accepts_children() ) {
+			// Add a new row if we don't have a parent. Top-level modules
+			// (containers and top_level-flagged) don't get a parent as they
+			// can go in the main layout directly.
+			if ( ! $module->can_be_top_level() ) {
 				$row        = self::add_row( '1-col', $position );
 				$col_groups = self::get_nodes( 'column-group', $row->node );
 				$col_group  = array_shift( $col_groups );
@@ -3943,7 +4228,7 @@ final class FLBuilderModel {
 			}
 		} elseif ( 'row' == $parent->type ) {
 			// Add a new column group if the parent is a row.
-			if ( $module->accepts_children() ) {
+			if ( $module->can_be_top_level() ) {
 				$parent_id = $parent->node;
 			} else {
 				$col_group = self::add_col_group( $parent->node, '1-col', $position );
@@ -4035,8 +4320,7 @@ final class FLBuilderModel {
 		}
 
 		// Get an instance of the module.
-		$class              = get_class( self::$modules[ $type ] );
-		$instance           = new $class();
+		$instance           = self::create_module_instance( $type );
 		$instance->node     = $module_node_id;
 		$instance->settings = $settings;
 
@@ -4129,6 +4413,7 @@ final class FLBuilderModel {
 		if ( ! $module ) {
 			return false;
 		} elseif ( $settings ) {
+			$settings         = self::strip_client_js_code_overrides( (object) $settings, isset( $module->settings->type ) ? $module->settings->type : '', $module->settings );
 			$module->settings = (object) array_merge( (array) $module->settings, (array) $settings );
 		}
 
@@ -4156,8 +4441,7 @@ final class FLBuilderModel {
 	 */
 	static public function process_module_settings( $module, $new_settings ) {
 		// Get a new node instance to work with.
-		$class              = get_class( self::$modules[ $module->settings->type ] );
-		$instance           = new $class();
+		$instance           = self::create_module_instance( $module->settings->type );
 		$instance->node     = $module->node;
 		$instance->parent   = $module->parent;
 		$instance->settings = $module->settings;
@@ -4209,7 +4493,10 @@ final class FLBuilderModel {
 				$defaults       = self::get_settings_form_defaults( $type );
 				$defaults       = self::merge_nested_module_defaults( $type, $defaults );
 				$defaults->type = $type;
-				$defaults       = apply_filters( 'fl_builder_module_defaults', $defaults, $module );
+				/**
+				 * Default settings object for a module type, merged from the settings form defaults.
+				 */
+				$defaults = apply_filters( 'fl_builder_module_defaults', $defaults, $module );
 			}
 		} else {
 
@@ -4264,6 +4551,16 @@ final class FLBuilderModel {
 			if ( in_array( $class, $exclude ) ) {
 				continue;
 			}
+
+			// Skip entries registered via register_widget() that carry no name.
+			// Some plugins register block/shortcode elements as widgets (e.g. via
+			// WP_Super_Duper without a 'widget' output type), leaving WP_Widget::$name
+			// null. Such an entry isn't a usable widget and a null name breaks the
+			// builder's content panel search. Drop it at the source.
+			if ( '' === trim( (string) $widget->name ) ) {
+				continue;
+			}
+
 			$widget->class                     = $class;
 			$widget->isWidget         = true; // @codingStandardsIgnoreLine
 			$widget->fl_category               = __( 'WordPress Widgets', 'fl-builder' );
@@ -4365,6 +4662,7 @@ final class FLBuilderModel {
 		require_once FL_BUILDER_DIR . 'includes/row-settings.php';
 		require_once FL_BUILDER_DIR . 'includes/column-settings.php';
 		require_once FL_BUILDER_DIR . 'includes/module-settings.php';
+		require_once FL_BUILDER_DIR . 'includes/attributes-settings.php';
 	}
 
 	/**
@@ -4402,6 +4700,10 @@ final class FLBuilderModel {
 	 */
 	static public function filter_settings_forms() {
 		foreach ( self::$settings_forms as $id => $form ) {
+			/**
+			 * Settings form config array for a registered form ID, applied after the wp action.
+			 */
+			$form                        = FLBuilderLayoutPostSettings::gate_tab( $form, $id );
 			self::$settings_forms[ $id ] = apply_filters( 'fl_builder_filter_settings_form', $form, $id );
 
 			if ( isset( self::$modules[ $id ] ) ) {
@@ -4560,7 +4862,18 @@ final class FLBuilderModel {
 					if ( is_array( $responsive ) && isset( $responsive['default'] ) && isset( $responsive['default'][ $device ] ) ) {
 						$defaults->{ $responsive_name } = $responsive['default'][ $device ];
 					} elseif ( 'default' == $device ) {
-						$defaults->$name = $default;
+						// Support array defaults for dimension fields.
+						if ( 'dimension' === $field['type'] && is_array( $default ) ) {
+							$name_parts = explode( '_', $name );
+							$side_key   = array_pop( $name_parts );
+							if ( isset( $default[ $side_key ] ) ) {
+								$defaults->$name = $default[ $side_key ];
+							} else {
+								$defaults->$name = '';
+							}
+						} else {
+							$defaults->$name = $default;
+						}
 					} else {
 						$defaults->{ $responsive_name } = '';
 					}
@@ -4597,6 +4910,7 @@ final class FLBuilderModel {
 		 * @see fl_builder_settings_form_defaults
 		 * @link https://docs.wpbeaverbuilder.com/beaver-builder/developer/tutorials-guides/common-beaver-builder-filter-examples
 		 */
+		$defaults                              = FLBuilderLayoutPostSettings::set_defaults( $defaults, $form_type );
 		self::$settings_form_defaults[ $type ] = apply_filters( 'fl_builder_settings_form_defaults', $defaults, $form_type );
 
 		return self::$settings_form_defaults[ $type ];
@@ -4649,6 +4963,229 @@ final class FLBuilderModel {
 	}
 
 	/**
+	 * JS code field plan per module type: which top-level fields and which
+	 * repeater sub-fields carry a JavaScript code editor. Memoized so the copy
+	 * hot path does not re-walk settings forms for every node.
+	 *
+	 * @var array
+	 */
+	static private $js_code_field_plan = array();
+
+	/**
+	 * Node-level JavaScript code fields that apply to any node type.
+	 *
+	 * These are only added to the settings form for privileged users
+	 * (FLBuilderNodeCodeSettings::filter_settings_fields), so the form walk
+	 * below cannot discover them for the users who need gating. They are
+	 * stripped by name instead.
+	 *
+	 * @var array
+	 */
+	static private $node_js_code_fields = array( 'bb_js_code' );
+
+	/**
+	 * Removes JavaScript code field values from a client-supplied settings
+	 * object for users who lack the unfiltered_html capability.
+	 *
+	 * Code fields with a JavaScript editor are echoed raw into the generated
+	 * layout JS, so an unprivileged user who can set one can inject arbitrary
+	 * script. This strips those keys from the incoming client settings before
+	 * they are merged, at every entry point that accepts node settings (save,
+	 * copy, alias, preview), so the stored/source value is kept instead.
+	 *
+	 * Node-level code fields are stripped for every node type, rows and
+	 * columns included. Module form fields are stripped from the module's
+	 * registered form, one level into form repeaters.
+	 *
+	 * Top-level keys are removed outright so the merge that follows keeps the
+	 * stored value. Repeater sub-fields cannot rely on that: the merge replaces
+	 * the whole repeater key with the client array, so the stored per-item
+	 * value is written back onto each item instead, matched by item key. Items
+	 * with no stored counterpart (newly added ones) have the field removed.
+	 *
+	 * Privileged users are unaffected. Forms without JS code fields are
+	 * returned unchanged. The incoming object is never mutated.
+	 *
+	 * @since 2.11
+	 * @param object $settings  The incoming client settings object.
+	 * @param string $node_type The type of the node being written (module type).
+	 * @param object $stored    The settings the client settings will be merged
+	 *                          into, used to restore repeater sub-field values.
+	 * @return object The settings object with disallowed JS code fields removed.
+	 */
+	static public function strip_client_js_code_overrides( $settings, $node_type, $stored = null ) {
+		if ( FLBuilderModel::user_has_unfiltered_html() ) {
+			return $settings;
+		}
+		if ( ! is_object( $settings ) ) {
+			return $settings;
+		}
+
+		$settings = clone $settings;
+
+		foreach ( self::$node_js_code_fields as $name ) {
+			unset( $settings->$name );
+		}
+
+		if ( empty( $node_type ) || ! isset( self::$modules[ $node_type ] ) ) {
+			return $settings;
+		}
+
+		$plan = self::get_js_code_field_plan( $node_type );
+
+		foreach ( $plan['top'] as $name ) {
+			unset( $settings->$name );
+		}
+		foreach ( $plan['repeaters'] as $name => $sub_names ) {
+			if ( isset( $settings->$name ) ) {
+				$stored_items    = self::get_container_value( $stored, $name );
+				$settings->$name = self::strip_js_fields_from_items( $settings->$name, $sub_names, $stored_items );
+			}
+		}
+
+		return $settings;
+	}
+
+	/**
+	 * Builds (and memoizes) the JS code field plan for a module type.
+	 *
+	 * @param string $node_type The module type.
+	 * @return array The plan: 'top' field names and 'repeaters' sub-field names.
+	 */
+	static private function get_js_code_field_plan( $node_type ) {
+		if ( isset( self::$js_code_field_plan[ $node_type ] ) ) {
+			return self::$js_code_field_plan[ $node_type ];
+		}
+
+		$plan = array(
+			'top'       => array(),
+			'repeaters' => array(),
+		);
+
+		foreach ( self::get_settings_form_fields( $node_type, 'module' ) as $name => $field ) {
+			if ( self::is_js_code_field( $field ) ) {
+				$plan['top'][] = $name;
+			} elseif ( isset( $field['type'], $field['form'] ) && 'form' === $field['type'] ) {
+				$sub_names = self::get_js_code_field_names( $field['form'] );
+				if ( ! empty( $sub_names ) ) {
+					$plan['repeaters'][ $name ] = $sub_names;
+				}
+			}
+		}
+
+		self::$js_code_field_plan[ $node_type ] = $plan;
+		return $plan;
+	}
+
+	/**
+	 * Returns the names of JavaScript code fields in a registered settings form.
+	 *
+	 * @param string $form The registered form id.
+	 * @return array The JS code field names.
+	 */
+	static private function get_js_code_field_names( $form ) {
+		$names = array();
+		foreach ( self::get_settings_form_fields( $form, 'general' ) as $sub_name => $sub_field ) {
+			if ( self::is_js_code_field( $sub_field ) ) {
+				$names[] = $sub_name;
+			}
+		}
+		return $names;
+	}
+
+	/**
+	 * Replaces the given field names on every item of a client repeater value
+	 * with the value stored on the matching item, removing the field when there
+	 * is nothing stored to restore.
+	 *
+	 * Handles both array- and object-shaped containers and items: the AJAX
+	 * decode path (json_decode( ..., true )) yields associative arrays, while
+	 * some payloads and internal callers pass objects. Neither the incoming
+	 * value nor the stored value is mutated.
+	 *
+	 * @param array|object $items        The client repeater value.
+	 * @param array        $field_names  Field names to restore or remove.
+	 * @param array|object $stored_items The stored repeater value, if any.
+	 * @return array|object The repeater value with the fields gated.
+	 */
+	static private function strip_js_fields_from_items( $items, $field_names, $stored_items = null ) {
+		if ( ! is_array( $items ) && ! is_object( $items ) ) {
+			return $items;
+		}
+		$items = is_object( $items ) ? clone $items : $items;
+
+		foreach ( $items as $key => $item ) {
+			$stored_item = self::get_container_value( $stored_items, $key );
+			$item        = is_object( $item ) ? clone $item : $item;
+
+			foreach ( $field_names as $field_name ) {
+				$item = self::set_container_value( $item, $field_name, self::get_container_value( $stored_item, $field_name ) );
+			}
+
+			if ( is_array( $items ) ) {
+				$items[ $key ] = $item;
+			} else {
+				$items->$key = $item;
+			}
+		}
+		return $items;
+	}
+
+	/**
+	 * Reads a key from an array- or object-shaped container.
+	 *
+	 * @param array|object $container The container to read from.
+	 * @param string|int   $key       The key to read.
+	 * @return mixed The value, or null when the container or key is absent.
+	 */
+	static private function get_container_value( $container, $key ) {
+		if ( is_array( $container ) ) {
+			return array_key_exists( $key, $container ) ? $container[ $key ] : null;
+		}
+		if ( is_object( $container ) ) {
+			return isset( $container->$key ) ? $container->$key : null;
+		}
+		return null;
+	}
+
+	/**
+	 * Writes a key on an array- or object-shaped container, removing the key
+	 * instead when the value is null.
+	 *
+	 * @param array|object $container The container to write to.
+	 * @param string|int   $key       The key to write.
+	 * @param mixed        $value     The value, or null to remove the key.
+	 * @return array|object The updated container.
+	 */
+	static private function set_container_value( $container, $key, $value ) {
+		if ( is_array( $container ) ) {
+			if ( null === $value ) {
+				unset( $container[ $key ] );
+			} else {
+				$container[ $key ] = $value;
+			}
+		} elseif ( is_object( $container ) ) {
+			if ( null === $value ) {
+				unset( $container->$key );
+			} else {
+				$container->$key = $value;
+			}
+		}
+		return $container;
+	}
+
+	/**
+	 * Whether a settings form field is a code field using the JavaScript editor.
+	 *
+	 * @since 2.11
+	 * @param array $field A settings form field definition.
+	 * @return bool
+	 */
+	static private function is_js_code_field( $field ) {
+		return isset( $field['type'], $field['editor'] ) && 'code' === $field['type'] && 'javascript' === $field['editor'];
+	}
+
+	/**
 	 * Save the settings for a node.
 	 *
 	 * @since 1.0
@@ -4669,6 +5206,15 @@ final class FLBuilderModel {
 		$is_node_template  = self::is_post_node_template( false, $node->type );
 		$post_id           = self::get_post_id();
 
+		// Prevent users without unfiltered_html from introducing raw JS via
+		// code fields (e.g. the Button module's Button Code setting).
+		$settings = self::strip_client_js_code_overrides( $settings, isset( $node->settings->type ) ? $node->settings->type : '', $node->settings );
+
+		// Give third-party module types a chance to strip or restore fields
+		// before verify_settings_kses runs. Lets restricted users save settings
+		// on nodes whose definitions include code (e.g. Design System blocks).
+		$settings = self::pre_verify_node_settings( $settings, $node, $post_id, $template_post_id );
+
 		// Verify settings for security before proceeding.
 		if ( ! FLBuilderModel::user_has_unfiltered_html() && true !== self::verify_settings( $settings ) ) {
 			return array(
@@ -4680,7 +5226,15 @@ final class FLBuilderModel {
 
 		// Merge the new settings.
 		if ( $is_dynamic_global ) {
-			$new_settings = FLBuilderDynamicGlobal::merge_settings_for_save( $node, $settings );
+			// Deliberately not $node. get_node() resolves settings through
+			// merge_settings_with_template(), so $node->settings is the component
+			// master's values with this instance's overrides applied on top. Saving
+			// from that base persists the merged view onto the instance, which makes
+			// the instance stop tracking its master: once its own copy holds the
+			// merged values, clearing the overrides leaves them in place. Save from
+			// what the instance actually stores instead.
+			$save_base    = self::get_stored_node_for_save( $node_id );
+			$new_settings = FLBuilderDynamicGlobal::merge_settings_for_save( $save_base ? $save_base : $node, $settings );
 		} else {
 			$new_settings = (object) array_merge( (array) $node->settings, (array) $settings );
 			$new_settings = self::process_node_settings( $node, $new_settings );
@@ -4691,12 +5245,10 @@ final class FLBuilderModel {
 			$new_settings->dynamic_fields = (object) $new_settings->dynamic_fields;
 		}
 
-		/**
-		 * Remove any js setting for users with no unfiltered role
-		 */
-		if ( ! FLBuilderModel::user_has_unfiltered_html() ) {
-			unset( $new_settings->bb_js_code );
-		}
+		// bb_js_code is gated by strip_client_js_code_overrides() above, which
+		// drops it from the incoming client settings rather than from the merged
+		// object, so an existing admin-authored value survives an edit by a
+		// lower-privileged user.
 
 		// Save the settings to the node.
 		$data                       = self::get_layout_data();
@@ -4732,15 +5284,93 @@ final class FLBuilderModel {
 	}
 
 	/**
+	 * The node as it is actually stored, for use as the base of a save.
+	 *
+	 * get_node() hands back settings resolved through the template merge, which
+	 * must never become what we persist for a dynamic-global node. This returns
+	 * the stored node with a fully detached settings object.
+	 *
+	 * The detach is not optional. get_layout_data() clones each node, but the
+	 * clone is shallow: `->settings` — and the `dynamic_node_settings->root`
+	 * object hanging off it — are still the cached instances, and
+	 * merge_settings_for_save() writes into both. Without a deep copy a save
+	 * would mutate the request's layout cache in place.
+	 *
+	 * @since 2.11
+	 * @param string $node_id
+	 * @return object|null Null when the node isn't in the layout data.
+	 */
+	static private function get_stored_node_for_save( $node_id ) {
+		$data = self::get_layout_data();
+
+		if ( ! isset( $data[ $node_id ] ) || ! is_object( $data[ $node_id ] ) ) {
+			return null;
+		}
+
+		$node = $data[ $node_id ];
+
+		if ( isset( $node->settings ) && is_object( $node->settings ) ) {
+			$node->settings = unserialize( serialize( $node->settings ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize
+		}
+
+		return $node;
+	}
+
+	/**
 	 * Verify the settings for a node to make sure they
 	 * can be saved safely.
 	 *
 	 * @since 2.4.1
 	 * @param object $settings The settings to verify.
+	 * @param string $node_id Optional node ID. When provided, the pre-verify
+	 *                        filter runs with node context so the result matches
+	 *                        what save_settings will ultimately persist.
 	 * @return bool
 	 */
-	static public function verify_settings( $settings ) {
+	static public function verify_settings( $settings, $node_id = null ) {
+		if ( ! empty( $node_id ) ) {
+			$node = self::get_node( $node_id );
+			if ( ! empty( $node ) ) {
+				$settings         = (object) $settings;
+				$post_id          = self::get_post_id();
+				$template_post_id = self::is_node_global( $node );
+				$settings         = self::pre_verify_node_settings( $settings, $node, $post_id, $template_post_id );
+			}
+		}
 		return self::verify_settings_kses( $settings );
+	}
+
+	/**
+	 * Apply the pre-verify filter to node settings.
+	 *
+	 * Gives third-party module types a hook to modify the settings object
+	 * before verify_settings_kses runs on it. Intended for scenarios where
+	 * a module's definition legitimately contains code that kses would strip
+	 * (e.g. Design System blocks): the module can strip those fields from
+	 * the incoming payload and restore them from the stored node so the save
+	 * can proceed instead of being rejected wholesale.
+	 *
+	 * @since 2.11
+	 * @param object   $settings         Incoming settings object.
+	 * @param object   $node             The node being saved.
+	 * @param int      $post_id          Current post ID.
+	 * @param int|bool $template_post_id Template post ID for global nodes, or false.
+	 * @return object Filtered settings.
+	 */
+	public static function pre_verify_node_settings( $settings, $node, $post_id, $template_post_id ) {
+		/**
+		 * Filter node settings before kses verification runs on save.
+		 *
+		 * Fires in both FLBuilderModel::save_settings() and FLBuilderModel::verify_settings()
+		 * so the pre-flight verification modal and the actual save stay in sync.
+		 *
+		 * @since 2.11
+		 * @param object   $settings         Incoming settings object.
+		 * @param object   $node             The node being saved.
+		 * @param int      $post_id          Current post ID.
+		 * @param int|bool $template_post_id Template post ID for global nodes, or false.
+		 */
+		return apply_filters( 'fl_builder_pre_verify_node_settings', $settings, $node, $post_id, $template_post_id );
 	}
 
 	/**
@@ -4757,7 +5387,31 @@ final class FLBuilderModel {
 			add_filter( 'safe_style_css', '__return_empty_array' );
 		}
 
+		/**
+		 * Top-level setting keys to skip when kses-verifying a node save.
+		 *
+		 * A third-party module type can flag fields it has already made safe
+		 * via the `fl_builder_pre_verify_node_settings` filter — for example
+		 * Design System blocks whose `ds_block_data` JSON blob legitimately
+		 * contains `<script>`/`<template>` tags that originate from trusted
+		 * AI-generated content stored by a capable user. Skip those here so
+		 * the restricted user's save is not rejected by kses iterating over
+		 * string content the module has already guaranteed.
+		 *
+		 * Callers are responsible for ensuring the skipped fields are safe;
+		 * this is an explicit opt-out, not a default.
+		 *
+		 * @since 2.11
+		 * @param string[] $skip_keys Setting keys to bypass kses verification for.
+		 * @param object   $settings  The settings being verified.
+		 */
+		$skip_keys = apply_filters( 'fl_builder_verify_settings_kses_skip_keys', [], $settings );
+		$skip_keys = is_array( $skip_keys ) ? $skip_keys : [];
+
 		foreach ( $settings as $key => $value ) {
+			if ( in_array( $key, $skip_keys, true ) ) {
+				continue;
+			}
 			if ( is_string( $value ) ) {
 				$value     = stripslashes( $value );
 				$sanitized = wp_kses_post( $value );
@@ -4828,7 +5482,10 @@ final class FLBuilderModel {
 			} elseif ( 'link' === $fields[ $name ]['type'] ) {
 				$settings->$name = FLBuilderUtils::esc_attr( $value );
 			} elseif ( 'container_element' === $name ) {
-				$clean   = false;
+				$clean = false;
+				/**
+				 * Allowed HTML element options for the node container element setting.
+				 */
 				$allowed = apply_filters( 'fl_builder_node_container_element_options', array(
 					'div'     => '&lt;div&gt;',
 					'section' => '&lt;section&gt;',
@@ -4919,6 +5576,9 @@ final class FLBuilderModel {
 			// Merge in defaults and cache settings
 			self::$global_settings = (object) array_merge( (array) $defaults, (array) $settings );
 			self::$global_settings = self::merge_nested_form_defaults( 'general', 'global', self::$global_settings );
+			/**
+			 * Global settings object after loading and merging with defaults.
+			 */
 			self::$global_settings = apply_filters( 'fl_builder_get_global_settings', self::$global_settings );
 		}
 
@@ -4970,6 +5630,9 @@ final class FLBuilderModel {
 		self::$global_settings = null;
 
 		// apply filter before update.
+		/**
+		 * Global settings object before it is saved to the database.
+		 */
 		$new_settings = apply_filters( 'fl_builder_before_save_global_settings', $new_settings );
 
 		// update db with new settings.
@@ -5224,7 +5887,7 @@ final class FLBuilderModel {
 	 * @param int $post_id The ID of the post to get data for.
 	 * @return array
 	 */
-	static public function get_layout_data( $status = null, $post_id = null ) {
+	static public function get_layout_data( $status = null, $post_id = null, $copy = true ) {
 		$post_id = ! $post_id ? self::get_post_id() : $post_id;
 		$status  = ! $status ? self::get_node_status() : $status;
 
@@ -5233,18 +5896,24 @@ final class FLBuilderModel {
 			if ( isset( self::$published_layout_data[ $post_id ] ) ) {
 				$data = self::$published_layout_data[ $post_id ];
 			} else {
-				$data                                    = get_metadata( 'post', $post_id, '_fl_builder_data', true );
-				$data                                    = self::clean_layout_data( $data );
-				$data                                    = FLBuilderSettingsCompat::filter_layout_data( $data );
+				$data = get_metadata( 'post', $post_id, '_fl_builder_data', true );
+				$data = self::clean_layout_data( $data );
+				$data = FLBuilderSettingsCompat::filter_layout_data( $data );
+				/**
+				 * Published layout data array after loading and cleaning from post meta.
+				 */
 				self::$published_layout_data[ $post_id ] = apply_filters( 'fl_builder_get_layout_metadata', $data, $status, $post_id );
 			}
 		} elseif ( 'draft' == $status ) {
 			if ( isset( self::$draft_layout_data[ $post_id ] ) ) {
 				$data = self::$draft_layout_data[ $post_id ];
 			} else {
-				$data                                = get_metadata( 'post', $post_id, '_fl_builder_draft', true );
-				$data                                = self::clean_layout_data( $data );
-				$data                                = FLBuilderSettingsCompat::filter_layout_data( $data );
+				$data = get_metadata( 'post', $post_id, '_fl_builder_draft', true );
+				$data = self::clean_layout_data( $data );
+				$data = FLBuilderSettingsCompat::filter_layout_data( $data );
+				/**
+				 * Draft layout data array after loading and cleaning from post meta.
+				 */
 				self::$draft_layout_data[ $post_id ] = apply_filters( 'fl_builder_get_layout_metadata', $data, $status, $post_id );
 			}
 		}
@@ -5255,13 +5924,17 @@ final class FLBuilderModel {
 		}
 
 		// Clone the layout data to ensure the cache remains intact.
-		foreach ( $data as $node_id => $node ) {
-			if ( is_object( $node ) ) {
-				$data[ $node_id ] = clone $node;
+		// Pass $copy = false only when you are certain the returned nodes will
+		// not be mutated (e.g. template-data reads inside get_node_settings()).
+		if ( $copy ) {
+			foreach ( $data as $node_id => $node ) {
+				if ( is_object( $node ) ) {
+					$data[ $node_id ] = clone $node;
 
-				if ( ! empty( $data[ $node_id ]->global ) ) {
-					if ( isset( $data[ $node_id ]->type ) && 'module' === $data[ $node_id ]->type ) {
-						$data[ $node_id ]->moduleType = $data[ $node_id ]->settings->type;
+					if ( ! empty( $data[ $node_id ]->global ) ) {
+						if ( isset( $data[ $node_id ]->type ) && 'module' === $data[ $node_id ]->type ) {
+							$data[ $node_id ]->moduleType = $data[ $node_id ]->settings->type;
+						}
 					}
 				}
 			}
@@ -5294,6 +5967,20 @@ final class FLBuilderModel {
 		$data = self::slash_settings( self::clean_layout_data( $data ) );
 
 		/**
+		 * Whether to remove orphaned nodes (nodes whose parent chain does not connect to a root)
+		 * from layout data on save. Off by default while the behavior is opt-in. May become an
+		 * advanced setting in a future release.
+		 *
+		 * @since 2.10
+		 * @param bool  $enabled  Whether to remove orphaned nodes. Default false.
+		 * @param array $data     Layout data about to be saved.
+		 * @param int   $post_id  Post ID being saved.
+		 */
+		if ( apply_filters( 'fl_builder_remove_orphaned_nodes', false, $data, $post_id ) ) {
+			$data = self::remove_orphaned_nodes( $data );
+		}
+
+		/**
 		 * @since 2.6
 		 * @see fl_builder_enable_small_data_mode
 		 */
@@ -5308,10 +5995,13 @@ final class FLBuilderModel {
 		}
 
 		// Allow data to be filtered before updating.
+		/**
+		 * Layout data array before it is written to the database.
+		 */
 		$data = apply_filters( 'fl_builder_before_update_layout_data', $data, $status, $post_id );
 
 		// Update the data.
-		if ( 0 === count( $raw_data ) ) {
+		if ( ! is_array( $raw_data ) || 0 === count( $raw_data ) ) {
 			add_metadata( 'post', $post_id, $key, $data );
 		} else {
 			update_metadata( 'post', $post_id, $key, $data );
@@ -5323,6 +6013,14 @@ final class FLBuilderModel {
 		} elseif ( 'draft' == $status ) {
 			self::$draft_layout_data[ $post_id ] = $data;
 		}
+
+		// Invalidate categorized nodes cache for this post/status combination.
+		unset( self::$categorized_nodes_cache[ $post_id . '_' . $status ] );
+		self::$categorized_child_nodes_cache = array();
+
+		// Invalidate per-node settings cache — any layout write may change what
+		// get_node_settings() returns (e.g. global template updates affect other posts).
+		self::$node_settings_cache = array();
 	}
 
 	/**
@@ -5368,6 +6066,76 @@ final class FLBuilderModel {
 		$cleaned = array();
 
 		if ( is_array( $data ) ) {
+
+			// Batch-prime the template post ID cache and WP meta cache before iterating nodes.
+			// This prevents N+1 queries from is_node_global() and is_node_dynamic() below.
+			$template_ids_to_fetch = array();
+			foreach ( $data as $node ) {
+				if ( is_object( $node ) && ! empty( $node->template_id )
+					&& ! isset( self::$node_template_post_ids[ $node->template_id ] ) ) {
+					$template_ids_to_fetch[ $node->template_id ] = true;
+				}
+			}
+
+			if ( ! empty( $template_ids_to_fetch ) ) {
+				$template_ids_to_fetch = array_keys( $template_ids_to_fetch );
+
+				// A template ID can be held by more than one template post after an
+				// import, migration or staging sync, and this query matches posts
+				// rather than IDs. Capping it at the ID count let duplicates of one
+				// ID consume every slot and starve another ID out of the result set,
+				// which then cached false and made its global nodes read the host
+				// page's layout data instead of the template's.
+				$tpl_posts = get_posts( array(
+					'post_type'      => 'fl-builder-template',
+					'post_status'    => 'any',
+					'posts_per_page' => -1,
+					'orderby'        => array(
+						'date' => 'DESC',
+						'ID'   => 'DESC',
+					),
+					'meta_query'     => array(
+						array(
+							'key'     => '_fl_builder_template_id',
+							'value'   => $template_ids_to_fetch,
+							'compare' => 'IN',
+						),
+					),
+				) );
+
+				$resolved_post_ids = array();
+				foreach ( $tpl_posts as $tpl_post ) {
+					$tid = get_post_meta( $tpl_post->ID, '_fl_builder_template_id', true );
+
+					// First write wins so a duplicated template ID resolves to the same
+					// post get_node_template_post_id() would pick. Both queries order by
+					// date then ID descending, so the first row here is that method's
+					// $posts[0]; assigning on every iteration kept the last row instead,
+					// leaving the two paths disagreeing about the winner. The ID
+					// tiebreak is load-bearing: post_date is second-granularity, and an
+					// import loop creating duplicates within one second would otherwise
+					// leave the winner to MySQL, which can differ between the two
+					// queries and between requests.
+					if ( $tid && ! isset( self::$node_template_post_ids[ $tid ] ) ) {
+						$resolved                             = apply_filters( 'fl_builder_node_template_post_id', $tpl_post->ID );
+						self::$node_template_post_ids[ $tid ] = $resolved;
+						$resolved_post_ids[]                  = $resolved;
+					}
+				}
+
+				// Cache false for any template IDs not found, to prevent per-node query misses.
+				foreach ( $template_ids_to_fetch as $tid ) {
+					if ( ! isset( self::$node_template_post_ids[ $tid ] ) ) {
+						self::$node_template_post_ids[ $tid ] = false;
+					}
+				}
+
+				// Prime WP's meta cache for all template posts in one query so that
+				// get_post_meta() calls in is_post_global_node_template() hit the cache.
+				if ( ! empty( $resolved_post_ids ) ) {
+					update_meta_cache( 'post', $resolved_post_ids );
+				}
+			}
 
 			foreach ( $data as $node ) {
 
@@ -5426,6 +6194,53 @@ final class FLBuilderModel {
 		}
 
 		return $node;
+	}
+
+	/**
+	 * Removes orphaned nodes from layout data.
+	 *
+	 * Walks the node tree from all root nodes (parent === null) and returns
+	 * only reachable nodes. Any node whose parent chain does not connect back
+	 * to a root is silently dropped. This is always safe — orphaned nodes
+	 * cannot be rendered or accessed by BB regardless of how they got there.
+	 *
+	 * @since 2.10
+	 * @param array $data The layout data array.
+	 * @return array
+	 */
+	static public function remove_orphaned_nodes( array $data ) {
+		if ( empty( $data ) ) {
+			return $data;
+		}
+
+		// Build a parent → children index for an efficient tree walk.
+		$children = array();
+		foreach ( $data as $node_id => $node ) {
+			if ( is_null( $node->parent ) ) {
+				$children['__root__'][] = $node_id;
+			} else {
+				$children[ $node->parent ][] = $node_id;
+			}
+		}
+
+		// BFS from roots to collect all reachable node IDs.
+		$reachable = array();
+		$queue     = isset( $children['__root__'] ) ? $children['__root__'] : array();
+
+		while ( ! empty( $queue ) ) {
+			$id = array_shift( $queue );
+			if ( isset( $reachable[ $id ] ) ) {
+				continue;
+			}
+			$reachable[ $id ] = true;
+			if ( isset( $children[ $id ] ) ) {
+				foreach ( $children[ $id ] as $child_id ) {
+					$queue[] = $child_id;
+				}
+			}
+		}
+
+		return array_intersect_key( $data, $reachable );
 	}
 
 	/**
@@ -5491,6 +6306,9 @@ final class FLBuilderModel {
 
 		$settings = (object) array_merge( (array) $defaults, (array) $settings );
 
+		/**
+		 * Layout settings object for a post, merged with global defaults.
+		 */
 		return apply_filters( 'fl_builder_layout_settings', $settings, $status, $post_id );
 	}
 
@@ -5504,7 +6322,6 @@ final class FLBuilderModel {
 	 * @return object
 	 */
 	static public function update_layout_settings( $settings = array(), $status = null, $post_id = null ) {
-		$settings = (array) $settings;
 
 		if ( ! FLBuilderUserAccess::current_user_can( 'unrestricted_editing' ) ) {
 			if ( is_object( $settings ) ) {
@@ -5539,6 +6356,21 @@ final class FLBuilderModel {
 	 * @return object
 	 */
 	static public function save_layout_settings( $settings = array(), $status = null, $post_id = null ) {
+		$post_id = ! $post_id ? self::get_post_id() : $post_id;
+		$status  = ! $status ? self::get_node_status() : $status;
+
+		/**
+		 * Filter layout settings before they are saved to BB meta.
+		 * Use this to intercept and handle non-BB fields (e.g. post fields)
+		 * and return the stripped $settings array so only BB data is stored.
+		 *
+		 * @param array  $settings The settings array from the form.
+		 * @param string $status   'published' or 'draft'.
+		 * @param int    $post_id  The post being saved.
+		 */
+		$settings = FLBuilderLayoutPostSettings::save_post_settings( $settings, $status, $post_id );
+		$settings = apply_filters( 'fl_builder_save_layout_settings', $settings, $status, $post_id );
+
 		return self::update_layout_settings( $settings, $status, $post_id );
 	}
 
@@ -5960,7 +6792,6 @@ final class FLBuilderModel {
 			'order'            => 'ASC',
 			'posts_per_page'   => '-1',
 			'suppress_filters' => false,
-			'fields'           => 'ids',
 			'post__not_in'     => [ self::get_post_id() ],
 			'tax_query'        => array(
 				array(
@@ -5977,9 +6808,12 @@ final class FLBuilderModel {
 		remove_filter( 'the_title', 'convert_chars' );
 
 		// Loop through templates posts and build the templates array.
+		// WP primes meta and term caches from the get_posts() query above (no fields=>ids),
+		// so the get_post_meta() and get_the_terms() calls below hit the object cache.
 		foreach ( $posts as $post ) {
-			if ( has_post_thumbnail( $post ) ) {
-				$image_data = wp_get_attachment_image_src( get_post_thumbnail_id( $post ), 'medium_large' );
+			$post_id = $post->ID;
+			if ( has_post_thumbnail( $post_id ) ) {
+				$image_data = wp_get_attachment_image_src( get_post_thumbnail_id( $post_id ), 'medium_large' );
 				if ( is_array( $image_data ) ) {
 					$image = $image_data[0];
 				} else {
@@ -5990,19 +6824,22 @@ final class FLBuilderModel {
 			}
 
 			$templates[] = array(
-				'id'               => get_post_meta( $post, '_fl_builder_template_id', true ),
-				'postId'           => $post,
-				'name'             => get_the_title( $post ),
+				'id'               => get_post_meta( $post_id, '_fl_builder_template_id', true ),
+				'postId'           => $post_id,
+				'name'             => get_the_title( $post_id ),
 				'image'            => $image,
 				'kind'             => 'template',
 				'type'             => 'user',
-				'content'          => FLBuilderModel::get_user_template_type( $post ),
-				'isGlobal'         => FLBuilderModel::is_post_global_node_template( $post ),
-				'isDynamicEditing' => FLBuilderModel::is_post_dynamic_editing_node_template( $post ),
-				'link'             => add_query_arg( 'fl_builder', '', get_permalink( $post ) ),
+				'content'          => FLBuilderModel::get_user_template_type( $post_id ),
+				'isGlobal'         => FLBuilderModel::is_post_global_node_template( $post_id ),
+				'isDynamicEditing' => FLBuilderModel::is_post_dynamic_editing_node_template( $post_id ),
+				'link'             => add_query_arg( 'fl_builder', '', get_permalink( $post_id ) ),
 				'category'         => array(),
+				'moduleType'       => 'module' === $type ? get_post_meta( $post_id, '_fl_builder_template_module_type', true ) : '',
 			);
 		}
+
+		$templates = apply_filters( 'fl_builder_get_user_templates', $templates, $type );
 
 		add_filter( 'the_title', 'wptexturize' );
 		add_filter( 'the_title', 'convert_chars' );
@@ -6142,17 +6979,15 @@ final class FLBuilderModel {
 				$layout_data     = self::get_layout_data();
 				$layout_settings = self::get_layout_settings();
 
-				// Reposition rows if we are appending.
-				if ( $append ) {
+				// Reposition root nodes for append or prepend.
+				if ( '2' == $append ) {
 
-					$row_position = self::next_node_position( 'row' );
+					// Prepend the template above the existing layout.
+					self::prepend_template_nodes( $template->nodes, $layout_data );
+				} elseif ( $append ) {
 
-					foreach ( $template->nodes as $node_id => $node ) {
-
-						if ( 'row' == $node->type ) {
-							$template->nodes[ $node_id ]->position += $row_position;
-						}
-					}
+					// Append the template below the existing layout.
+					self::append_template_nodes( $template->nodes );
 				}
 
 				// Merge the layout data and settings.
@@ -6168,6 +7003,14 @@ final class FLBuilderModel {
 
 			}
 		}
+
+		$template_post_id = isset( $template_id ) ? (int) $template_id : 0;
+
+		/**
+		 * Allow extensions to hook into applying a user template.
+		 * @see fl_builder_after_apply_user_template
+		 */
+		do_action( 'fl_builder_after_apply_user_template', $template_post_id, $append );
 
 		// Return the layout.
 		return array(
@@ -6330,6 +7173,9 @@ final class FLBuilderModel {
 			}
 		}
 
+		/**
+		 * Whether a given node should be considered visible based on its visibility settings.
+		 */
 		return apply_filters( 'fl_builder_is_node_visible', $is_visible, $node );
 	}
 
@@ -6475,11 +7321,18 @@ final class FLBuilderModel {
 			return self::$node_template_post_ids[ $template_id ];
 		} else {
 
+			// Ordered by date then ID descending so a template ID held by more than
+			// one template post resolves to the same winner every request, and to the
+			// same one clean_layout_data()'s batch prime picks. Date alone is
+			// second-granularity, which an import can tie.
 			$posts = get_posts( array(
 				'post_type'      => 'fl-builder-template',
-				'post_status'    => array( 'any', 'trash' ),
-				'posts_per_page' => '-1',
 				'post_status'    => 'any',
+				'posts_per_page' => 1,
+				'orderby'        => array(
+					'date' => 'DESC',
+					'ID'   => 'DESC',
+				),
 				'meta_key'       => '_fl_builder_template_id',
 				'meta_value'     => $template_id,
 			) );
@@ -6488,6 +7341,9 @@ final class FLBuilderModel {
 				return false;
 			}
 
+			/**
+			 * Post ID resolved for a node template by its template ID.
+			 */
 			$post_id                                      = apply_filters( 'fl_builder_node_template_post_id', $posts[0]->ID );
 			self::$node_template_post_ids[ $template_id ] = $post_id;
 			return $post_id;
@@ -6578,6 +7434,10 @@ final class FLBuilderModel {
 		// Set the template type.
 		wp_set_post_terms( $post_id, $root_node->type, 'fl-builder-template-type' );
 
+		if ( 'module' === $root_node->type ) {
+			update_post_meta( $post_id, '_fl_builder_template_module_type', $root_node->settings->type );
+		}
+
 		// add extra optional data
 		if ( isset( $settings['categories'] ) && ! empty( $settings['categories'] ) ) {
 			if ( is_numeric( $settings['categories'] ) ) {
@@ -6658,17 +7518,21 @@ final class FLBuilderModel {
 			}
 		}
 
+		// Add the template ID post meta. We use a custom ID for node
+		// templates in case templates are imported since their WordPress
+		// IDs will change, breaking global templates. This must be set
+		// before update_layout_data() so clean_layout_data()'s batch-prime
+		// of $node_template_post_ids resolves the new template instead of
+		// caching false (which would break is_node_global() / is_node_dynamic()
+		// and cause apply_node_template() to fail looking up the new post).
+		update_post_meta( $post_id, '_fl_builder_template_id', $template_id );
+
 		// Save the template layout data.
 		self::update_layout_data( $nodes, 'published', $post_id );
 		self::update_layout_data( $nodes, 'draft', $post_id );
 
 		// Enable the builder for this template.
 		update_post_meta( $post_id, '_fl_builder_enabled', true );
-
-		// Add the template ID post meta. We use a custom ID for node
-		// templates in case templates are imported since their WordPress
-		// IDs will change, breaking global templates.
-		update_post_meta( $post_id, '_fl_builder_template_id', $template_id );
 
 		// Add the template global flag post meta.
 		update_post_meta( $post_id, '_fl_builder_template_global', $global );
@@ -6682,6 +7546,12 @@ final class FLBuilderModel {
 			// Apply the global template.
 			$root_node = self::apply_node_template( $template_id, $original_parent, $original_position );
 		}
+
+		/**
+		 * Allow extensions to hook into saving a node template.
+		 * @see fl_builder_after_save_node_template
+		 */
+		do_action( 'fl_builder_after_save_node_template', $post_id, $root_node, $settings );
 
 		// Return an array of template settings.
 		return array(
@@ -7158,6 +8028,12 @@ final class FLBuilderModel {
 		// Delete old asset cache.
 		self::delete_asset_cache();
 
+		/**
+		 * Allow extensions to hook into applying a node template.
+		 * @see fl_builder_after_apply_node_template
+		 */
+		do_action( 'fl_builder_after_apply_node_template', (int) $template_post_id, $root_node, $parent_id );
+
 		// Return the root node.
 		if ( 'module' == $root_node->type ) {
 			return self::get_module( $root_node->node );
@@ -7270,9 +8146,8 @@ final class FLBuilderModel {
 	 * @return array
 	 */
 	static public function apply_core_template( $index = 0, $append = false, $type = 'layout' ) {
-		$template     = self::get_template( $index, $type );
-		$row_position = self::next_node_position( 'row' );
-		$data         = array();
+		$template = self::get_template( $index, $type );
+		$data     = array();
 
 		// Delete existing nodes and settings?
 		if ( ! $append ) {
@@ -7296,15 +8171,15 @@ final class FLBuilderModel {
 			$layout_data     = self::get_layout_data();
 			$layout_settings = self::get_layout_settings();
 
-			// Reposition rows?
-			if ( $append ) {
+			// Reposition root nodes for append or prepend.
+			if ( '2' == $append ) {
 
-				foreach ( $template->nodes as $node_id => $node ) {
+				// Prepend the template above the existing layout.
+				self::prepend_template_nodes( $template->nodes, $layout_data );
+			} elseif ( $append ) {
 
-					if ( 'row' == $node->type ) {
-						$template->nodes[ $node_id ]->position += $row_position;
-					}
-				}
+				// Append the template below the existing layout.
+				self::append_template_nodes( $template->nodes );
 			}
 
 			// Merge and update the layout data.
@@ -7427,6 +8302,9 @@ final class FLBuilderModel {
 	 * @return bool
 	 */
 	static public function has_templates() {
+		/**
+		 * Whether any templates exist for display in the template selector.
+		 */
 		return apply_filters( 'fl_builder_has_templates', ( count( self::get_templates() ) > 0 ) );
 	}
 
@@ -7440,6 +8318,9 @@ final class FLBuilderModel {
 	 * @return array
 	 */
 	static public function get_template_selector_data( $type = 'layout' ) {
+		/**
+		 * Template type string passed to get_template_selector_data, e.g. layout, row, column, or module.
+		 */
 		$type        = apply_filters( 'fl_builder_template_selector_data_type', $type );
 		$categorized = array();
 		$templates   = array();
@@ -7471,6 +8352,9 @@ final class FLBuilderModel {
 				$image = FLBuilder::plugin_url() . 'img/templates/' . ( empty( $template->image ) ? 'blank.jpg' : $template->image );
 			}
 
+			/**
+			 * Details array for a single template entry in the template selector.
+			 */
 			$templates[] = apply_filters( 'fl_builder_template_details', array(
 				'id'       => $key,
 				'name'     => $template->name,
@@ -7578,6 +8462,9 @@ final class FLBuilderModel {
 	 * @return array
 	 */
 	static public function get_row_templates_data() {
+		/**
+		 * Template selector data array for row templates shown in the UI panel.
+		 */
 		return apply_filters( 'fl_builder_row_templates_data', self::get_template_selector_data( 'row' ) );
 	}
 
@@ -7588,6 +8475,9 @@ final class FLBuilderModel {
 	 * @return array
 	 */
 	static public function get_column_templates_data() {
+		/**
+		 * Template selector data array for column templates shown in the UI panel.
+		 */
 		return apply_filters( 'fl_builder_column_templates_data', self::get_template_selector_data( 'column' ) );
 	}
 
@@ -7598,6 +8488,9 @@ final class FLBuilderModel {
 	 * @return array
 	 */
 	static public function get_module_templates_data() {
+		/**
+		 * Template selector data array for module templates shown in the UI panel.
+		 */
 		return apply_filters( 'fl_builder_module_templates_data', self::get_template_selector_data( 'module' ) );
 	}
 
@@ -7627,7 +8520,19 @@ final class FLBuilderModel {
 	static public function get_color_presets() {
 		$settings = get_option( '_fl_builder_color_presets', array() );
 
-		return apply_filters( 'fl_builder_color_presets', $settings );
+		/**
+		 * Array of saved color presets from the builder global settings.
+		 */
+		$presets = apply_filters( 'fl_builder_color_presets', $settings );
+
+		if ( ! is_array( $presets ) ) {
+			return $presets;
+		}
+
+		// Normalized after the filter, not before: the filter never documented a
+		// format and the legacy picker accepted bare hex, so third-party presets
+		// need the same treatment as the ones read from the option.
+		return array_map( array( 'FLBuilderColor', 'normalize_color_value' ), $presets );
 	}
 
 	/**
@@ -7678,14 +8583,6 @@ final class FLBuilderModel {
 		 * @see fl_code_checking_enabled
 		 */
 		$enabled = apply_filters( 'fl_code_checking_enabled', true );
-		/**
-		 * Enable shortcodes in css/js
-		 * @see fl_enable_shortcode_css_js
-		 * @since 2.3
-		 */
-		if ( true === apply_filters( 'fl_enable_shortcode_css_js', false ) ) {
-			$enabled = false;
-		}
 		return $enabled;
 	}
 
@@ -7794,6 +8691,9 @@ final class FLBuilderModel {
 	static public function get_help_button_defaults() {
 		$defaults = array(
 			'enabled'            => true,
+			/**
+			 * Whether the onboarding tour is enabled in the help button defaults.
+			 */
 			'tour'               => apply_filters( 'fl_builder_tour_enabled', true ),
 			'video'              => true,
 			'video_embed'        => '<iframe src="https://player.vimeo.com/video/240550556?autoplay=1" width="420" height="315" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>',
@@ -7804,7 +8704,7 @@ final class FLBuilderModel {
 				'utm_campaign' => 'kb-help-button',
 			) ),
 			'forums'             => true,
-			'forums_url'         => self::get_store_url( 'knowledge-base', array(
+			'forums_url'         => self::get_store_url( 'beaver-builder-support', array(
 				'utm_medium'   => ( true === FL_BUILDER_LITE ? 'bb-lite' : 'bb-pro' ),
 				'utm_source'   => 'builder-ui',
 				'utm_campaign' => 'forums-help-button',
@@ -7841,6 +8741,9 @@ final class FLBuilderModel {
 			'maxAllowedWidth'   => false,
 		);
 
+		/**
+		 * Settings array controlling row resize behavior in the builder editor.
+		 */
 		$settings = apply_filters( 'fl_row_resize_settings', $defaults );
 
 		// Ensure everything is still defined after filter
@@ -7955,6 +8858,11 @@ final class FLBuilderModel {
 	 * @return mixed
 	 */
 	static public function get_admin_settings_option( $key, $network_override = true ) {
+		$cache_key = $key . '_' . ( $network_override ? '1' : '0' );
+		if ( array_key_exists( $cache_key, self::$admin_settings_option_cache ) ) {
+			return self::$admin_settings_option_cache[ $cache_key ];
+		}
+
 		if ( is_network_admin() ) {
 			// Get the site-wide option if we're in the network admin.
 			$value = get_site_option( $key );
@@ -7970,6 +8878,7 @@ final class FLBuilderModel {
 			$value = get_option( $key );
 		}
 
+		self::$admin_settings_option_cache[ $cache_key ] = $value;
 		return $value;
 	}
 
@@ -7983,6 +8892,10 @@ final class FLBuilderModel {
 	 * @return mixed
 	 */
 	static public function update_admin_settings_option( $key, $value, $network_override = true, $autoload = false ) {
+		// Invalidate per-request cache for both override variants of this key.
+		unset( self::$admin_settings_option_cache[ $key . '_0' ] );
+		unset( self::$admin_settings_option_cache[ $key . '_1' ] );
+
 		if ( is_network_admin() ) {
 			// Update the site-wide option since we're in the network admin.
 			update_site_option( $key, $value );
@@ -8070,6 +8983,9 @@ final class FLBuilderModel {
 	 * @since 2.6
 	 */
 	static public function user_has_unfiltered_html() {
+		/**
+		 * Whether the current user has the unfiltered_html capability.
+		 */
 		return apply_filters( 'fl_user_has_unfiltered_html', current_user_can( 'unfiltered_html' ) );
 	}
 
