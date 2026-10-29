@@ -75,22 +75,15 @@ function oms_change_new_member_subscription() {
         // Get all lists and create array of list_ids
         $lists = mailster( 'lists' )->get();
         $list_ids = array_map( 'intval', wp_list_pluck( $lists, 'ID' ) );
-		//write_log_mailster("MAILSTER_UNSUB START ###################\n");
-		//write_log_mailster("MAILSTER_UNSUB LIST-IDs ALL:\n ");
-		//write_log_mailster($list_ids);
 
 		// define exclusion lists for unassign at customer status switch
 		// if member is already on one of these lists, don't unassign
 		$not_list = array(31,47,60,30,52,53,54,55,56,57,58,59,63); // Kunden ID=31, Kunden Gutschein ID=47, Kunden Test ID=60
 		$not_list = array_map( 'intval', $not_list ); 
-		//write_log_mailster("MAILSTER_UNSUB LIST-IDs NOT:\n ");
-		//write_log_mailster($not_list);
 
 		// Remove exclusion lists as not_list is no longer a parameter in unassign_lists
 		$list_ids_unassign = array();
 		$list_ids_unassign = array_diff($list_ids, $not_list);
-		//write_log_mailster("MAILSTER LIST-IDs UNASSIGN:\n ");
-		//write_log_mailster($list_ids_unassign);
 
         // Get email addresses
 	    //$dest = ABSPATH . 'wp-content/mailster-email-test.log';
@@ -103,8 +96,6 @@ function oms_change_new_member_subscription() {
 
 	    	list($email, $instrument) = explode(",", $member_data);
 	        //mailster('subscribers')->unsubscribe_by_mail( $email);
-	        //write_log_mailster("MAILSTER_UNSUB ON SALE EMAIL " . $email);
-	        //write_log_mailster("MAILSTER_UNSUB ON SALE INSTRUMENT " . $instrument);
 	    
 	        if ( $subscriber = mailster( 'subscribers' )->get_by_mail( $email ) ) {
 				$subscriber_id = $subscriber->ID;
@@ -136,15 +127,10 @@ function oms_change_new_member_subscription() {
 			$subscriber_list_ids = wp_list_pluck( $lists_cust, 'ID' );
 			$subscriber_list_ids = array_map( 'intval', $subscriber_list_ids );
 			$intersection = array_intersect( $subscriber_list_ids, $not_list );
-			//write_log_mailster("MAILSTER_UNSUB LIST-IDs INTERSECT :\n ");
-			//write_log_mailster($intersection);
 
 			
 			if ( ! empty( $list_ids_unassign ) && ! is_wp_error( $subscriber_id ) && empty( $intersection ) ) {
 				mailster( 'subscribers' )->unassign_lists( $subscriber_id, $list_ids_unassign );
-        	 	//write_log_mailster("MAILSTER_UNSUB SUBSCRIBER_ID UNASSIGN: ".$subscriber_id);
-				write_log_mailster("MAILSTER_UNSUB LIST-IDs UNASSIGN:\n ");
-				write_log_mailster($list_ids_unassign);
 			} else {
 				write_log_mailster("MAILSTER_UNSUB NO UNASSIGN FOR: ".$subscriber_id);
 			}
@@ -194,10 +180,9 @@ function oms_change_new_member_subscription() {
 			if ( ! empty( $assign_list ) && ! is_wp_error( $subscriber_id ) && empty( $intersection ) ) {
 				mailster( 'subscribers' )->assign_lists( $subscriber_id, $assign_list, false, true);
         	    //write_log_mailster('MAILSTER_UNSUB SUBSCRIBER_ID ASSIGN: '.$subscriber_id);
-        	    write_log_mailster("MAILSTER_UNSUB ASSIGN_LIST ASSIGN:\n");
-        	    write_log_mailster($assign_list);
+        	    write_log_mailster("MAILSTER_UNSUB ASSIGN_LIST ASSIGN:".$assign_list."\n");
 			} else {
-				write_log_mailster("MAILSTER_UNSUB NO ASSIGN FOR: ".$subscriber_id);
+				write_log_mailster("MAILSTER_UNSUB NO ASSIGN FOR: ".$subscriber_id."\n");
 			}
 	    }
 	}
