@@ -18,8 +18,8 @@ add_action( 'oms_mailster_trompete_inactive', 'oms_trompete_move_to_inactive' );
  * Write proper to debug.log with function write_log_mailster
  */
 
-if ( ! function_exists('write_log')) {
-   function write_log ( $log )  {
+if ( ! function_exists('write_log_mailster')) {
+   function write_log_mailster ( $log )  {
    if ( is_array( $log ) || is_object( $log ) ) {
          error_log( print_r( $log, true ), 3, "/var/customers/webs/omsadmin/www.openmusicschool.de/lp/wp-content/debug-mailster.log" );
       } else {
